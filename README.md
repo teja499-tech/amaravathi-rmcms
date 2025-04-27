@@ -2,6 +2,38 @@
 
 A comprehensive Django-based management system for Ready-Mix Concrete (RMC) business operations. This system streamlines the management of customers, suppliers, deliveries, expenses, employee salaries, and financial records.
 
+<details>
+  <summary>📸 Click here to view Amaravathi RMBMP Screenshots</summary>
+
+  ### Main Dashboard
+  ![Dashboard](docs/screenshots/main_dashboard.png)
+
+  ### Business Summary Dashboard
+  ![Business Summary](docs/screenshots/summary_dashboard.png)
+
+  ### Customer List
+  ![Customer List](docs/screenshots/customers_list.png)
+
+  ### Customer Details
+  ![Customer Details](docs/screenshots/customer_profile.png)
+
+  ### Suppliers and Purchases
+  ![Suppliers](docs/screenshots/suppliers.png)
+
+  ### Inventory Management
+  ![Inventory](docs/screenshots/inventory_management.png)
+
+  ### Low Stock Alerts
+  ![Low Stock](docs/screenshots/inventory.png)
+
+  ### Employee Dashboard
+  ![Employee Dashboard](docs/screenshots/employees.png)
+
+  ### Unified Ledger
+  ![Unified Ledger](docs/screenshots/ledger.png)
+
+</details>
+
 ## Features
 
 - **User Management**: Role-based authentication with three access levels (Admin, Accountant, Viewer)
