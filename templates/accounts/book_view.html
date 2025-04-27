@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ book_type }} | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">{{ book_type }}</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">{{ book_type }}</li>
+    </ol>
+
+    <!-- Filters Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-filter me-1"></i>
+            Filters
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="id_start_date" class="form-label">Start Date</label>
+                    {{ form.start_date }}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_end_date" class="form-label">End Date</label>
+                    {{ form.end_date }}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_search" class="form-label">Search</label>
+                    {{ form.search }}
+                </div>
+                <div class="col-md-3">
+                    <label for="id_transaction_type" class="form-label">Transaction Type</label>
+                    {{ form.transaction_type }}
+                </div>
+                
+                {% if book_type == 'Bank Book' %}
+                <div class="col-md-3">
+                    <label for="id_bank_account" class="form-label">Bank Account</label>
+                    <select name="bank_account" id="id_bank_account" class="form-control">
+                        <option value="">All Accounts</option>
+                        {% for account in bank_accounts %}
+                        <option value="{{ account.id }}" {% if selected_bank_account == account.id|stringformat:"s" %}selected{% endif %}>
+                            {{ account.name }} - {{ account.bank_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> Apply Filters
+                    </button>
+                    <a href="{% if book_type == 'Cash Book' %}{% url 'accounts:cash_book' %}{% else %}{% url 'accounts:bank_book' %}{% endif %}" class="btn btn-secondary">
+                        <i class="fas fa-sync-alt me-1"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small text-white-50">Total Inflow</div>
+                            <div class="fw-bold fs-4">₹{{ total_inflow|intcomma }}</div>
+                        </div>
+                        <div>
+                            <i class="fas fa-arrow-down fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-danger text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small text-white-50">Total Outflow</div>
+                            <div class="fw-bold fs-4">₹{{ total_outflow|intcomma }}</div>
+                        </div>
+                        <div>
+                            <i class="fas fa-arrow-up fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card {% if net_cash_flow >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small text-white-50">Net Cash Flow</div>
+                            <div class="fw-bold fs-4">₹{{ net_cash_flow|intcomma }}</div>
+                        </div>
+                        <div>
+                            <i class="fas fa-exchange-alt fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small text-white-50">Transactions</div>
+                            <div class="fw-bold fs-4">{{ transaction_count }}</div>
+                        </div>
+                        <div>
+                            <i class="fas fa-list fa-2x text-white-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-table me-1"></i>
+            Transactions
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th>Type</th>
+                            {% if book_type == 'Bank Book' %}
+                            <th>Bank Account</th>
+                            {% endif %}
+                            <th class="text-end">Inflow</th>
+                            <th class="text-end">Outflow</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if transactions %}
+                            {% for transaction in transactions %}
+                            <tr>
+                                <td>{{ transaction.date|date:"d-m-Y" }}</td>
+                                <td>{{ transaction.description }}</td>
+                                <td>{{ transaction.reference_number|default:"-" }}</td>
+                                <td>
+                                    {% if book_type == 'Cash Book' %}
+                                        <span class="badge {% if transaction.transaction_type in 'income,sale' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ transaction.get_transaction_type_display }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge {% if transaction.transaction_type == 'deposit' %}bg-success{% elif transaction.transaction_type == 'withdrawal' %}bg-danger{% else %}bg-info{% endif %}">
+                                            {{ transaction.get_transaction_type_display }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                {% if book_type == 'Bank Book' %}
+                                <td>{{ transaction.bank_account.name }}</td>
+                                {% endif %}
+                                <td class="text-end">
+                                    {% if book_type == 'Cash Book' %}
+                                        {% if transaction.transaction_type in 'income,sale' %}
+                                            ₹{{ transaction.amount|intcomma }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    {% else %}
+                                        {% if transaction.transaction_type == 'deposit' %}
+                                            ₹{{ transaction.amount|intcomma }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if book_type == 'Cash Book' %}
+                                        {% if transaction.transaction_type in 'expense,purchase' %}
+                                            ₹{{ transaction.amount|intcomma }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    {% else %}
+                                        {% if transaction.transaction_type == 'withdrawal' %}
+                                            ₹{{ transaction.amount|intcomma }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if book_type == 'Cash Book' %}
+                                        {% if transaction.supplier %}
+                                        <a href="{% url 'suppliers:supplier_detail' transaction.supplier.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View Supplier
+                                        </a>
+                                        {% elif transaction.customer %}
+                                        <a href="{% url 'customers:customer_detail' transaction.customer.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View Customer
+                                        </a>
+                                        {% elif transaction.delivery %}
+                                        <a href="{% url 'customers:delivery_detail' transaction.delivery.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View Delivery
+                                        </a>
+                                        {% elif transaction.purchase %}
+                                        <a href="{% url 'suppliers:purchase_detail' transaction.purchase.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View Purchase
+                                        </a>
+                                        {% else %}
+                                        <button class="btn btn-sm btn-secondary" disabled>
+                                            <i class="fas fa-eye"></i> No Link
+                                        </button>
+                                        {% endif %}
+                                    {% else %}
+                                        <a href="#" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> View Details
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="{% if book_type == 'Bank Book' %}8{% else %}7{% endif %}" class="text-center">
+                                    No transactions found.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if transactions.paginator %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mt-4">
+                    {% if transactions.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            First
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ transactions.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            Previous
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item disabled">
+                        <span class="page-link">
+                            Page {{ transactions.number }} of {{ transactions.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if transactions.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ transactions.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            Next
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ transactions.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            Last
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

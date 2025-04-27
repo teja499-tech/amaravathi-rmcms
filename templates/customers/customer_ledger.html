@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer Ledger - {{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">Customer Ledger</h1>
+            <p class="text-muted">{{ customer.name }}</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="{% url 'customers:customer_detail' customer.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Customer
+                </a>
+                <a href="{% url 'customers:payment_create' %}?customer={{ customer.id }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Add Payment
+                </a>
+                <div class="dropdown ms-2">
+                    <button class="btn btn-success dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-download me-1"></i> Export
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                        <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&export=true&format=excel">Excel</a></li>
+                        <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&export=true&format=pdf">PDF</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="due_status" class="form-label">Status</label>
+                            <select class="form-select" id="due_status" name="due_status">
+                                <option value="">All Transactions</option>
+                                <option value="overdue" {% if due_status == 'overdue' %}selected{% endif %}>Overdue</option>
+                                <option value="pending" {% if due_status == 'pending' %}selected{% endif %}>Pending</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                            <a href="{% url 'customers:customer_ledger' customer.id %}" class="btn btn-outline-secondary">Reset</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Account Statement</h5>
+                    <div>
+                        <span class="badge bg-primary me-2">Total: ₹{{ account_summary.total_sales }}</span>
+                        <span class="badge bg-success me-2">Paid: ₹{{ account_summary.total_received }}</span>
+                        <span class="badge {% if account_summary.balance_due > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                            Balance: ₹{{ account_summary.balance_due }}
+                        </span>
+                        {% if account_summary.overdue_count > 0 %}
+                        <span class="badge bg-danger ms-1">
+                            {{ account_summary.overdue_count }} Overdue
+                        </span>
+                        {% endif %}
+                        {% if account_summary.pending_count > 0 %}
+                        <span class="badge bg-warning ms-1">
+                            {{ account_summary.pending_count }} Pending
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Reference</th>
+                                    <th class="text-end">Debit</th>
+                                    <th class="text-end">Credit</th>
+                                    <th class="text-end">Balance</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                <tr {% if transaction.type == 'payment' and transaction.payment_mode.lower == 'credit' and transaction.due_date and transaction.due_date < today %}class="table-danger"{% endif %}>
+                                    <td>{{ transaction.date }}</td>
+                                    <td>{{ transaction.type_display }}</td>
+                                    <td>
+                                        {% if transaction.type == 'delivery' %}
+                                            <a href="{% url 'customers:delivery_detail' transaction.id %}">
+                                                {{ transaction.invoice_number }}
+                                            </a>
+                                        {% elif transaction.type == 'payment' %}
+                                            {% if transaction.delivery %}
+                                                <a href="{% url 'customers:delivery_detail' transaction.delivery.id %}">
+                                                    Payment for {{ transaction.delivery.invoice_number }}
+                                                </a>
+                                            {% else %}
+                                                General Payment ({{ transaction.reference_number|default:"No reference" }})
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{% if transaction.type == 'delivery' %}₹{{ transaction.amount }}{% else %}-{% endif %}</td>
+                                    <td class="text-end">{% if transaction.type == 'payment' %}₹{{ transaction.amount }}{% else %}-{% endif %}</td>
+                                    <td class="text-end">₹{{ transaction.running_balance }}</td>
+                                    <td>
+                                        {% if transaction.type == 'payment' and transaction.payment_mode.lower == 'credit' and transaction.due_date %}
+                                            {{ transaction.due_date }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if transaction.type == 'payment' and transaction.payment_mode.lower == 'credit' and transaction.due_date %}
+                                            {% if transaction.due_date < today %}
+                                                <span class="badge bg-danger">Overdue</span>
+                                            {% elif transaction.due_date == today %}
+                                                <span class="badge bg-warning">Due Today</span>
+                                            {% else %}
+                                                <span class="badge bg-success">On Time</span>
+                                            {% endif %}
+                                        {% elif transaction.type == 'delivery' and transaction.balance > 0 %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif transaction.type == 'delivery' and transaction.balance == 0 %}
+                                            <span class="badge bg-success">Paid</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Completed</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center">
+                        <p>No transactions found for this customer with the current filters.</p>
+                        {% if start_date or end_date or due_status %}
+                        <a href="{% url 'customers:customer_ledger' customer.id %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-repeat me-1"></i> Reset Filters
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

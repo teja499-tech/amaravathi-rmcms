@@ -1,0 +1,415 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{% if object %}Edit Purchase Order{% else %}New Purchase Order{% endif %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .formset-row {
+        background-color: #f8f9fa;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+    }
+    .delete-row {
+        color: #dc3545;
+        cursor: pointer;
+    }
+    .add-row {
+        margin-top: 10px;
+    }
+    .table-total {
+        font-weight: bold;
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow">
+        <div class="card-header">
+            <h4 class="mb-0">{% if object %}Edit Purchase Order{% else %}New Purchase Order{% endif %}</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" id="purchase-order-form">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.supplier.id_for_label }}" class="form-label">Supplier</label>
+                            {{ form.supplier|add_class:"form-control" }}
+                            {% if form.supplier.errors %}
+                            <div class="text-danger">{{ form.supplier.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.purchase_date.id_for_label }}" class="form-label">Purchase Date</label>
+                            {{ form.purchase_date|add_class:"form-control"|attr:"type:date" }}
+                            {% if form.purchase_date.errors %}
+                            <div class="text-danger">{{ form.purchase_date.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date</label>
+                            {{ form.due_date|add_class:"form-control"|attr:"type:date" }}
+                            <div class="form-text">Due date for payment. Leave blank if no credit terms.</div>
+                            {% if form.due_date.errors %}
+                            <div class="text-danger">{{ form.due_date.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.gst_percent.id_for_label }}" class="form-label">GST Percentage (%)</label>
+                            {{ form.gst_percent|add_class:"form-control" }}
+                            {% if form.gst_percent.errors %}
+                            <div class="text-danger">{{ form.gst_percent.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="{{ form.transport_cost.id_for_label }}" class="form-label">Transport Cost</label>
+                            {{ form.transport_cost|add_class:"form-control" }}
+                            {% if form.transport_cost.errors %}
+                            <div class="text-danger">{{ form.transport_cost.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                    {{ form.notes|add_class:"form-control" }}
+                    {% if form.notes.errors %}
+                    <div class="text-danger">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Auto Update Inventory Checkbox -->
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="auto_update_inventory" name="auto_update_inventory" {% if auto_update_inventory %}checked{% endif %} {% if object.inventory_updated %}disabled{% endif %}>
+                    <label class="form-check-label" for="auto_update_inventory">
+                        Automatically update inventory quantities when saving
+                        {% if object.inventory_updated %}
+                        <span class="badge bg-success ms-2">Inventory already updated</span>
+                        {% endif %}
+                    </label>
+                    <div class="form-text">
+                        {% if object.inventory_updated %}
+                        This purchase order has already updated the inventory. No further updates are needed.
+                        {% else %}
+                        When checked, material quantities will be automatically added to inventory upon saving this purchase order.
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h5 class="mb-3">Purchase Items</h5>
+                
+                {{ items.management_form }}
+                
+                <div class="table-responsive">
+                    <table class="table table-striped" id="items-table">
+                        <thead>
+                            <tr>
+                                <th>Material</th>
+                                <th>Quantity</th>
+                                <th>Rate</th>
+                                <th>GST Applicable</th>
+                                <th>Amount</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-tbody">
+                            {% for form in items.forms %}
+                                <tr class="formset-row">
+                                    {% for hidden in form.hidden_fields %}
+                                        {{ hidden }}
+                                    {% endfor %}
+                                    
+                                    <td>
+                                        {{ form.material|add_class:"form-control item-material" }}
+                                        {% if form.material.errors %}
+                                            <div class="text-danger">{{ form.material.errors }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ form.quantity|add_class:"form-control item-quantity" }}
+                                        {% if form.quantity.errors %}
+                                            <div class="text-danger">{{ form.quantity.errors }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ form.rate_per_unit|add_class:"form-control item-rate" }}
+                                        {% if form.rate_per_unit.errors %}
+                                            <div class="text-danger">{{ form.rate_per_unit.errors }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {{ form.gst_applicable|add_class:"form-check-input item-gst" }}
+                                        {% if form.gst_applicable.errors %}
+                                            <div class="text-danger">{{ form.gst_applicable.errors }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="item-amount">0.00</td>
+                                    <td>
+                                        {% if form.instance.pk %}
+                                            {{ form.DELETE|add_class:"form-check-input" }}
+                                        {% else %}
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-row">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="6">
+                                    <button type="button" class="btn btn-sm btn-primary add-row">
+                                        <i class="bi bi-plus-circle"></i> Add Item
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="table-total">
+                                <td colspan="4" class="text-end">Subtotal:</td>
+                                <td id="subtotal">0.00</td>
+                                <td></td>
+                            </tr>
+                            <tr class="table-total">
+                                <td colspan="4" class="text-end">GST Amount:</td>
+                                <td id="gst-amount">0.00</td>
+                                <td></td>
+                            </tr>
+                            <tr class="table-total">
+                                <td colspan="4" class="text-end">Transport Cost:</td>
+                                <td id="transport-cost">0.00</td>
+                                <td></td>
+                            </tr>
+                            <tr class="table-total">
+                                <td colspan="4" class="text-end">Total Amount:</td>
+                                <td id="total-amount">0.00</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'materials:purchase_order_list' %}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Purchase Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const formsetPrefix = "{{ items.prefix }}";
+        const tbody = document.getElementById('items-tbody');
+        const addButton = document.querySelector('.add-row');
+        const managementForm = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
+        const gstPercentInput = document.getElementById('{{ form.gst_percent.id_for_label }}');
+        const transportCostInput = document.getElementById('{{ form.transport_cost.id_for_label }}');
+        
+        // Initialize calculation on page load
+        calculateTotals();
+        
+        // Add event listeners to all existing rows
+        addEventListenersToRows();
+        
+        // Add row button click handler
+        addButton.addEventListener('click', function() {
+            const forms = document.querySelectorAll(`[id^="id_${formsetPrefix}-"][id$="-material"]`);
+            const totalForms = forms.length;
+            
+            // Get the empty form template
+            const emptyForm = document.getElementById(`empty_${formsetPrefix}_form`);
+            let newForm = null;
+            
+            if (emptyForm) {
+                // If we have an empty form template, use it
+                newForm = emptyForm.cloneNode(true);
+                newForm.innerHTML = newForm.innerHTML.replace(/__prefix__/g, totalForms);
+                newForm.setAttribute('class', 'formset-row');
+                newForm.setAttribute('id', '');
+            } else {
+                // Otherwise, clone the last form and update indices
+                const lastForm = tbody.lastElementChild;
+                newForm = lastForm.cloneNode(true);
+                
+                // Update the IDs and names of all input elements
+                const inputs = newForm.querySelectorAll('input, select');
+                inputs.forEach(input => {
+                    const name = input.getAttribute('name');
+                    const id = input.getAttribute('id');
+                    
+                    if (name) {
+                        const newName = name.replace(/-\d+-/, `-${totalForms}-`);
+                        input.setAttribute('name', newName);
+                    }
+                    
+                    if (id) {
+                        const newId = id.replace(/-\d+-/, `-${totalForms}-`);
+                        input.setAttribute('id', newId);
+                    }
+                    
+                    // Clear the value for new row
+                    if (!input.getAttribute('type') === 'hidden') {
+                        input.value = '';
+                    }
+                    if (input.getAttribute('type') === 'checkbox') {
+                        input.checked = false;
+                    }
+                });
+            }
+            
+            // Add the new form to the table
+            tbody.appendChild(newForm);
+            
+            // Update form count
+            managementForm.value = parseInt(managementForm.value) + 1;
+            
+            // Add event listeners to the new row
+            addEventListenersToRow(newForm);
+            
+            // Recalculate totals
+            calculateTotals();
+        });
+        
+        // Add event listeners to calculate totals
+        gstPercentInput.addEventListener('input', calculateTotals);
+        transportCostInput.addEventListener('input', calculateTotals);
+        
+        // Function to add event listeners to all rows
+        function addEventListenersToRows() {
+            const rows = tbody.querySelectorAll('.formset-row');
+            rows.forEach(row => {
+                addEventListenersToRow(row);
+            });
+        }
+        
+        // Function to add event listeners to a single row
+        function addEventListenersToRow(row) {
+            const quantityInput = row.querySelector('.item-quantity');
+            const rateInput = row.querySelector('.item-rate');
+            const gstCheckbox = row.querySelector('.item-gst');
+            const removeButton = row.querySelector('.remove-row');
+            
+            if (quantityInput) {
+                quantityInput.addEventListener('input', function() {
+                    calculateRowAmount(row);
+                    calculateTotals();
+                });
+            }
+            
+            if (rateInput) {
+                rateInput.addEventListener('input', function() {
+                    calculateRowAmount(row);
+                    calculateTotals();
+                });
+            }
+            
+            if (gstCheckbox) {
+                gstCheckbox.addEventListener('change', calculateTotals);
+            }
+            
+            if (removeButton) {
+                removeButton.addEventListener('click', function() {
+                    row.remove();
+                    
+                    // Renumber the rows
+                    const rows = tbody.querySelectorAll('.formset-row');
+                    for (let i = 0; i < rows.length; i++) {
+                        const inputs = rows[i].querySelectorAll('input, select');
+                        inputs.forEach(input => {
+                            const name = input.getAttribute('name');
+                            const id = input.getAttribute('id');
+                            
+                            if (name && name.match(/-\d+-/)) {
+                                const newName = name.replace(/-\d+-/, `-${i}-`);
+                                input.setAttribute('name', newName);
+                            }
+                            
+                            if (id && id.match(/-\d+-/)) {
+                                const newId = id.replace(/-\d+-/, `-${i}-`);
+                                input.setAttribute('id', newId);
+                            }
+                        });
+                    }
+                    
+                    // Update form count
+                    managementForm.value = rows.length;
+                    
+                    // Recalculate totals
+                    calculateTotals();
+                });
+            }
+        }
+        
+        // Function to calculate row amount
+        function calculateRowAmount(row) {
+            const quantityInput = row.querySelector('.item-quantity');
+            const rateInput = row.querySelector('.item-rate');
+            const amountCell = row.querySelector('.item-amount');
+            
+            if (quantityInput && rateInput && amountCell) {
+                const quantity = parseFloat(quantityInput.value) || 0;
+                const rate = parseFloat(rateInput.value) || 0;
+                const amount = quantity * rate;
+                
+                amountCell.textContent = amount.toFixed(2);
+            }
+        }
+        
+        // Function to calculate overall totals
+        function calculateTotals() {
+            const rows = tbody.querySelectorAll('.formset-row');
+            let subtotal = 0;
+            
+            rows.forEach(row => {
+                calculateRowAmount(row);
+                
+                const amountCell = row.querySelector('.item-amount');
+                const gstCheckbox = row.querySelector('.item-gst');
+                
+                if (amountCell) {
+                    const amount = parseFloat(amountCell.textContent) || 0;
+                    subtotal += amount;
+                }
+            });
+            
+            const gstPercent = parseFloat(gstPercentInput.value) || 0;
+            const transportCost = parseFloat(transportCostInput.value) || 0;
+            
+            const gstAmount = subtotal * (gstPercent / 100);
+            const totalAmount = subtotal + gstAmount + transportCost;
+            
+            document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+            document.getElementById('gst-amount').textContent = gstAmount.toFixed(2);
+            document.getElementById('transport-cost').textContent = transportCost.toFixed(2);
+            document.getElementById('total-amount').textContent = totalAmount.toFixed(2);
+        }
+    });
+</script>
+{% endblock %} 

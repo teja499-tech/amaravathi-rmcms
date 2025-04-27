@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Test Supabase Upload{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Test Supabase File Upload</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <p>This page demonstrates uploading files to Supabase Storage.</p>
+                        <p>Supported file types: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, JPEG</p>
+                    </div>
+                    
+                    <form id="upload-form" enctype="multipart/form-data" class="mb-4">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Select a file to upload</label>
+                            <input type="file" class="form-control" id="file" name="file" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload File</button>
+                    </form>
+                    
+                    <div class="result-container d-none">
+                        <div class="alert alert-success">
+                            <h5>Upload Successful!</h5>
+                            <p>File has been uploaded to Supabase Storage.</p>
+                        </div>
+                        
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>File Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="table">
+                                    <tr>
+                                        <th>Filename:</th>
+                                        <td id="result-filename"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Path:</th>
+                                        <td id="result-path"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>URL:</th>
+                                        <td>
+                                            <a href="#" id="result-url" target="_blank">View File</a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="error-container d-none">
+                        <div class="alert alert-danger">
+                            <h5>Upload Failed</h5>
+                            <p id="error-message"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('upload-form');
+        const resultContainer = document.querySelector('.result-container');
+        const errorContainer = document.querySelector('.error-container');
+        
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Reset UI
+            resultContainer.classList.add('d-none');
+            errorContainer.classList.add('d-none');
+            
+            // Create form data
+            const formData = new FormData(form);
+            
+            try {
+                // Show loading state
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
+                
+                // Submit the form
+                const response = await fetch('{% url "suppliers:test_upload" %}', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                // Parse the response
+                const data = await response.json();
+                
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                
+                if (response.ok) {
+                    // Show success message
+                    document.getElementById('result-filename').textContent = data.filename;
+                    document.getElementById('result-path').textContent = data.path;
+                    
+                    const urlLink = document.getElementById('result-url');
+                    urlLink.href = data.url;
+                    urlLink.textContent = data.url;
+                    
+                    resultContainer.classList.remove('d-none');
+                } else {
+                    // Show error message
+                    document.getElementById('error-message').textContent = data.message || 'Unknown error occurred';
+                    errorContainer.classList.remove('d-none');
+                }
+            } catch (error) {
+                // Show error message
+                document.getElementById('error-message').textContent = 'An error occurred during the upload: ' + error.message;
+                errorContainer.classList.remove('d-none');
+                
+                // Reset button
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Upload File';
+            }
+        });
+    });
+</script>
+{% endblock %} 

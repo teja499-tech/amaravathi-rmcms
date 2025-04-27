@@ -1,0 +1,460 @@
+{% load static %}
+{% load permission_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Amaravathi RMC{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/global.css' %}">
+    <link href="{% static 'css/responsive-tables.css' %}" rel="stylesheet">
+    
+    <style>
+        .sidebar-heading {
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-weight: 600;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(108, 117, 125, 0.2);
+            margin-bottom: 0.75rem;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Mobile Backdrop for Sidebar -->
+    <div id="sidebar-backdrop" class="d-none d-md-none"></div>
+
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top">
+        <div class="container-fluid">
+            <button class="btn btn-link text-primary d-md-none me-2" id="sidebarToggle">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+                <i class="bi bi-building text-primary me-1"></i> Amaravathi RMC
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTop" aria-controls="navbarTop" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarTop">
+                <div class="ms-auto"></div>
+                {% if user.is_authenticated %}
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1 text-primary"></i> {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
+                            <li><a class="dropdown-item" href="{% url 'users:profile' %}"><i class="bi bi-person me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" href="{% url 'users:change_password' %}"><i class="bi bi-key me-2"></i>Change Password</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Wrapper -->
+    <div class="wrapper">
+        {% if user.is_authenticated %}
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="p-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <p class="sidebar-heading px-3">Main</p>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'dashboard' %}" class="nav-link {% if request.path == dashboard_url %}active{% endif %}">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    
+                    {% can_access "material" "view" as can_view_material %}
+                    {% if can_view_material %}
+                    <li class="nav-item">
+                        <a href="{% url 'materials:smart_summary' %}" class="nav-link {% if request.path == smart_summary_url %}active{% endif %}">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Business Summary
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% can_access "customer" "view" as can_view_customer %}
+                    {% if can_view_customer %}
+                    <li class="nav-item mt-3">
+                        <p class="sidebar-heading px-3">Business Operations</p>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#customerSubmenu" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="{% if 'customer' in request.path or 'payment' in request.path or 'delivery' in request.path %}true{% else %}false{% endif %}">
+                            <i class="bi bi-people me-2"></i> Customers
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <div class="collapse {% if 'customer' in request.path or 'payment' in request.path or 'delivery' in request.path %}show{% endif %}" id="customerSubmenu">
+                            <ul class="nav flex-column ms-3 mt-2">
+                                <li class="nav-item">
+                                    <a href="{% url 'customers:customer_list' %}" class="nav-link {% if 'customer_list' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-list-ul me-2"></i> All Customers
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'customers:payment_list' %}" class="nav-link {% if 'payment_list' in request.resolver_match.view_name and 'customers' in request.path %}active{% endif %}">
+                                        <i class="bi bi-credit-card me-2"></i> Customer Payments
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'customers:delivery_list' %}" class="nav-link {% if 'delivery_list' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-truck me-2"></i> All Deliveries
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Suppliers Section -->
+                    <li class="nav-item">
+                        <a href="#supplierSubmenu" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="{% if 'supplier' in request.path or 'purchase' in request.path %}true{% else %}false{% endif %}">
+                            <i class="bi bi-building me-2"></i> Suppliers
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <div class="collapse {% if 'supplier' in request.path or 'purchase' in request.path %}show{% endif %}" id="supplierSubmenu">
+                            <ul class="nav flex-column ms-3 mt-2">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'suppliers:supplier_list' %}">
+                                        <i class="bi bi-card-list me-2"></i> All Suppliers
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'suppliers:payment_list' %}">
+                                        <i class="bi bi-credit-card me-2"></i> Supplier Payments
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'materials:purchase_order_list' %}">
+                                        <i class="bi bi-list-check me-2"></i> All Purchases
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    
+                    {% can_access "inventory" "view" as can_view_inventory %}
+                    {% if can_view_inventory %}
+                    <li class="nav-item mt-3">
+                        <p class="sidebar-heading px-3">Inventory</p>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'materials:inventory_list' %}" class="nav-link {% if 'inventory' in request.path %}active{% endif %}">
+                            <i class="bi bi-box-seam me-2"></i> Inventory Management
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% can_access "material" "view" as can_view_material %}
+                    {% if can_view_material %}
+                    <li class="nav-item">
+                        <a href="#materialSubmenu" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="{% if 'material' in request.path %}true{% else %}false{% endif %}">
+                            <i class="bi bi-boxes me-2"></i> Materials
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <div class="collapse {% if 'material' in request.path %}show{% endif %}" id="materialSubmenu">
+                            <ul class="nav flex-column ms-3 mt-2">
+                                <li class="nav-item">
+                                    <a href="{% url 'materials:material_list' %}" class="nav-link {% if 'material_list' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-list-ul me-2"></i> All Materials
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    {% endif %}
+                    
+                    {% can_access "expense" "view" as can_view_expense %}
+                    {% if can_view_expense %}
+                    <li class="nav-item mt-3">
+                        <p class="sidebar-heading px-3">Finance</p>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'employees:dashboard' %}" class="nav-link {% if 'employees:dashboard' in request.resolver_match.view_name %}active{% endif %}">
+                            <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#expenseSubmenu" class="nav-link collapsed" data-bs-toggle="collapse" aria-expanded="{% if 'expense' in request.path and 'category' not in request.path %}true{% else %}false{% endif %}">
+                            <i class="bi bi-cash-coin me-2"></i> Expenses
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <div class="collapse {% if 'expense' in request.path and 'category' not in request.path %}show{% endif %}" id="expenseSubmenu">
+                            <ul class="nav flex-column ms-3 mt-2">
+                                <li class="nav-item">
+                                    <a href="{% url 'expenses:expense_list' %}" class="nav-link {% if 'expense_list' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-list-ul me-2"></i> All Expenses
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'expenses:vehicle_list' %}" class="nav-link {% if 'vehicle_list' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-truck me-2"></i> Vehicles
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    {% endif %}
+                    
+                    {% can_access "category" "view" as can_view_category %}
+                    {% if can_view_category %}
+                    <li class="nav-item">
+                        <a href="#categorySubmenu" class="nav-link" data-bs-toggle="collapse" aria-expanded="{% if 'category' in request.path %}true{% else %}false{% endif %}">
+                            <i class="bi bi-tags me-2"></i> Categories
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <div class="collapse {% if 'category' in request.path %}show{% endif %}" id="categorySubmenu">
+                            <ul class="nav flex-column ms-3 mt-2">
+                                <li class="nav-item">
+                                    <a href="{% url 'expenses:category_list' %}" class="nav-link {% if 'category_list' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-list-ul me-2"></i> All Categories
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    {% endif %}
+                    
+                    {% can_access "employee" "view" as can_view_employee %}
+                    {% if can_view_employee %}
+                    <li class="nav-item">
+                        <a href="#employeesSubmenu" class="nav-link" data-bs-toggle="collapse" aria-expanded="{% if 'employees' in request.path %}true{% else %}false{% endif %}">
+                            <i class="bi bi-people me-2"></i> Employees
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <div class="collapse {% if 'employees' in request.path %}show{% endif %}" id="employeesSubmenu">
+                            <ul class="nav flex-column ms-3 mt-2">
+                                <li class="nav-item">
+                                    <a href="{% url 'employees:employee_list' %}" class="nav-link {% if 'employee_list' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-list-ul me-2"></i> All Employees
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'employees:salary_record_list' %}" class="nav-link {% if 'salary_record_list' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-cash-coin me-2"></i> Salary Records
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    {% endif %}
+                    
+                    {% can_access "accounts" "view" as can_view_accounts %}
+                    {% if can_view_accounts %}
+                    <li class="nav-item mt-3">
+                        <p class="sidebar-heading px-3">Reports</p>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#accountsSubmenu" class="nav-link" data-bs-toggle="collapse" aria-expanded="{% if 'accounts' in request.path %}true{% else %}false{% endif %}">
+                            <i class="bi bi-cash-coin"></i> Accounting
+                            <i class="bi bi-chevron-down"></i>
+                        </a>
+                        <div class="collapse {% if 'accounts' in request.path %}show{% endif %}" id="accountsSubmenu">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a href="{% url 'accounts:unified_ledger' %}" class="nav-link {% if 'unified_ledger' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-journal-text"></i> Unified Ledger
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'accounts:cash_book' %}" class="nav-link {% if 'cash_book' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-cash"></i> Cash Book
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'accounts:bank_book' %}" class="nav-link {% if 'bank_book' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-bank"></i> Bank Book
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'accounts:profit_loss_report' %}" class="nav-link {% if 'profit_loss_report' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-bar-chart"></i> Profit/Loss
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a href="{% url 'core:due_report' %}" class="nav-link {% if request.path == due_report_url %}active{% endif %}">
+                            <i class="bi bi-exclamation-triangle"></i> Due Report
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'customers:delivery_report' %}" class="nav-link {% if request.path == delivery_report_url %}active{% endif %}">
+                            <i class="bi bi-graph-up"></i> Delivery Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'expenses:report' %}" class="nav-link {% if request.path == expense_report_url %}active{% endif %}">
+                            <i class="bi bi-graph-down"></i> Expense Reports
+                        </a>
+                    </li>
+                    
+                    {% can_access "business_intelligence" "view" as can_view_business_intelligence %}
+                    {% if can_view_business_intelligence %}
+                    <li class="nav-item mt-3">
+                        <p class="sidebar-heading px-3">Business Intelligence</p>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'materials:smart_summary' %}" class="nav-link {% if 'dashboard' in request.path %}active{% endif %}">
+                            <i class="bi bi-speedometer2"></i> Business Dashboard
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% if user.role == 'ADMIN' %}
+                    <li class="nav-item mt-3">
+                        <p class="sidebar-heading px-3">Settings</p>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#userSubmenu" class="nav-link" data-bs-toggle="collapse" aria-expanded="{% if 'user' in request.path %}true{% else %}false{% endif %}">
+                            <i class="bi bi-people-fill"></i> Users
+                            <i class="bi bi-chevron-down"></i>
+                        </a>
+                        <div class="collapse {% if 'user' in request.path %}show{% endif %}" id="userSubmenu">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a href="{% url 'users:user_list' %}" class="nav-link {% if 'user_list' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-list-ul"></i> All Users
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'users:user_create' %}" class="nav-link {% if 'user_create' in request.resolver_match.view_name %}active{% endif %}">
+                                        <i class="bi bi-plus-circle"></i> Add User
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'accounts:settings' %}" class="nav-link {% if request.path == settings_url %}active{% endif %}">
+                            <i class="bi bi-gear"></i> System Settings
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="{% if not user.is_authenticated %}w-100 m-0{% endif %}">
+            <main class="content p-4">
+                {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% block content %}{% endblock %}
+            </main>
+            
+            <footer class="bg-light py-3 px-4 mt-auto">
+                <div class="container-fluid">
+                    <div class="d-flex align-items-center justify-content-between small">
+                        <div>
+                            &copy; {% now "Y" %} Amaravathi RMC. All rights reserved.
+                        </div>
+                        <div>
+                            <span>Version 1.0</span>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+    
+    <!-- Template scripts and libraries at end of body -->
+    <!-- Bootstrap 5 JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery (optional but used by some components) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Custom scripts -->
+    <script src="{% static 'js/responsive-tables.js' %}"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle sidebar on mobile
+            var sidebarToggle = document.getElementById('sidebarToggle');
+            var sidebar = document.getElementById('sidebar');
+            var backdrop = document.getElementById('sidebar-backdrop');
+            var body = document.body;
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    sidebar.classList.toggle('show');
+                    backdrop.classList.toggle('d-none');
+                    body.classList.toggle('sidebar-open');
+                });
+            }
+            
+            if (backdrop) {
+                backdrop.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    backdrop.classList.add('d-none');
+                    body.classList.remove('sidebar-open');
+                });
+            }
+            
+            // Initialize responsive tables
+            if (typeof makeTablesResponsive === 'function') {
+                makeTablesResponsive();
+            }
+            
+            // Handle sidebar menu collapse for mobile
+            var mediaQuery = window.matchMedia('(max-width: 768px)');
+            function handleScreenChange(e) {
+                if (!e.matches) {
+                    // Reset sidebar on desktop
+                    sidebar.classList.remove('show');
+                    backdrop.classList.add('d-none');
+                    body.classList.remove('sidebar-open');
+                }
+            }
+            
+            // Initial call and attach listener
+            handleScreenChange(mediaQuery);
+            mediaQuery.addEventListener('change', handleScreenChange);
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  {% if form.instance.id %}Edit Payment{% else %}Record Payment{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .payment-form-container {
+    background-color: #e8f4fc;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  
+  .form-card {
+    background-color: #fff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  
+  .form-card .card-body {
+    padding: 2rem;
+  }
+  
+  .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.25rem rgba(63, 81, 181, 0.25);
+  }
+  
+  .form-label {
+    font-weight: 500;
+    color: #455a64;
+  }
+  
+  .required-field::after {
+    content: ' *';
+    color: var(--danger);
+  }
+  
+  .help-card {
+    background-color: #f8fdff;
+    border-left: 4px solid var(--primary);
+  }
+  
+  .help-card .card-header {
+    background-color: #f8fdff;
+    color: var(--primary);
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 payment-form-container">
+  <div class="row mb-4">
+    <div class="col">
+      <h1 class="h3">
+        {% if form.instance.id %}
+          Edit Payment
+        {% else %}
+          Record Supplier Payment
+        {% endif %}
+      </h1>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card shadow form-card">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for error in form.non_field_errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="mb-3">
+              <label for="{{ form.supplier.id_for_label }}" class="form-label required-field">Supplier</label>
+              {{ form.supplier }}
+              {% if form.supplier.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.supplier.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.purchase_order.id_for_label }}" class="form-label">Purchase Order</label>
+              {{ form.purchase_order }}
+              <div class="form-text">Leave blank for general payments not tied to a specific purchase</div>
+              {% if form.purchase_order.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.purchase_order.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+              <div id="po-error-message" class="invalid-feedback d-none"></div>
+              <!-- Purchase Order Information -->
+              <div id="purchase-order-info" class="mt-2 d-none p-3 border rounded bg-light">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div><strong>Due Date:</strong> <span id="po-due-date">-</span></div>
+                    <div><strong>Total Amount:</strong> <span id="po-total-amount">-</span></div>
+                  </div>
+                  <div class="col-md-6">
+                    <div><strong>Amount Paid:</strong> <span id="po-amount-paid">-</span></div>
+                    <div><strong>Balance Due:</strong> <span id="po-balance" class="fw-bold">-</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.amount_paid.id_for_label }}" class="form-label required-field">Amount Paid</label>
+              {{ form.amount_paid }}
+              {% if form.amount_paid.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.amount_paid.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.payment_date.id_for_label }}" class="form-label required-field">Payment Date</label>
+              {{ form.payment_date }}
+              {% if form.payment_date.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.payment_date.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.payment_mode.id_for_label }}" class="form-label required-field">Payment Mode</label>
+              {{ form.payment_mode }}
+              {% if form.payment_mode.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.payment_mode.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3" id="due_date_field">
+              <label for="{{ form.due_date.id_for_label }}" class="form-label {% if form.instance.payment_mode == 'CREDIT' %}required-field{% endif %}">Due Date</label>
+              {{ form.due_date }}
+              <div class="form-text">Required for credit payments</div>
+              {% if form.due_date.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.due_date.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.reference_number.id_for_label }}" class="form-label">Reference Number</label>
+              {{ form.reference_number }}
+              <div class="form-text">Cheque number, transaction ID, etc.</div>
+              {% if form.reference_number.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.reference_number.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.remarks.id_for_label }}" class="form-label">Remarks</label>
+              {{ form.remarks }}
+              {% if form.remarks.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.remarks.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+              <a href="{% url 'suppliers:payment_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i> Save Payment
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card shadow help-card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Help</h5>
+        </div>
+        <div class="card-body">
+          <p><strong>Recording Payments:</strong></p>
+          <ul>
+            <li>Select the supplier who received the payment</li>
+            <li>Optionally link this payment to a specific purchase order</li>
+            <li>Enter the amount paid and payment date</li>
+            <li>Select the payment method used</li>
+            <li>For credit payments, specify the due date</li>
+            <li>Add reference numbers like cheque number or transaction ID</li>
+            <li>Include any additional notes about this payment</li>
+          </ul>
+          <p class="mb-0 text-muted"><small>All fields marked with * are required</small></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const paymentModeField = document.querySelector('#id_payment_mode');
+    const dueDateField = document.querySelector('#due_date_field');
+    const supplierField = document.querySelector('#id_supplier');
+    const purchaseOrderField = document.querySelector('#id_purchase_order');
+    const poErrorMessage = document.querySelector('#po-error-message');
+    const purchaseOrderInfo = document.querySelector('#purchase-order-info');
+    const amountPaidField = document.querySelector('#id_amount_paid');
+    
+    // Store all purchase orders on page load
+    const allPurchaseOrders = Array.from(purchaseOrderField.options).slice(1); // Skip the first empty option
+    
+    function toggleDueDateField() {
+      if (paymentModeField.value === 'CREDIT') {
+        dueDateField.style.display = 'block';
+        dueDateField.querySelector('label').classList.add('required-field');
+      } else {
+        dueDateField.style.display = 'none';
+        dueDateField.querySelector('label').classList.remove('required-field');
+      }
+    }
+    
+    function fetchPurchaseOrderDetails(poId) {
+      if (!poId) {
+        purchaseOrderInfo.classList.add('d-none');
+        return;
+      }
+      
+      fetch(`/materials/api/purchase-orders/${poId}/details/`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Purchase order details:', data);
+          
+          // Update the purchase order information display
+          document.getElementById('po-due-date').textContent = data.due_date || 'Not specified';
+          document.getElementById('po-total-amount').textContent = `₹${data.total_amount}`;
+          document.getElementById('po-amount-paid').textContent = `₹${data.amount_paid}`;
+          document.getElementById('po-balance').textContent = `₹${data.balance}`;
+          
+          // Set the amount paid field to the balance by default
+          if (data.balance > 0) {
+            amountPaidField.value = data.balance;
+          }
+          
+          // Add class to balance based on amount
+          const balanceElement = document.getElementById('po-balance');
+          if (data.balance <= 0) {
+            balanceElement.classList.add('text-success');
+            balanceElement.classList.remove('text-danger');
+          } else {
+            balanceElement.classList.add('text-danger');
+            balanceElement.classList.remove('text-success');
+          }
+          
+          // Show the purchase order information
+          purchaseOrderInfo.classList.remove('d-none');
+        })
+        .catch(error => {
+          console.error('Error fetching purchase order details:', error);
+          purchaseOrderInfo.classList.add('d-none');
+        });
+    }
+    
+    function updatePurchaseOrders() {
+      // Safety check to ensure all required DOM elements exist
+      if (!supplierField || !purchaseOrderField || !poErrorMessage) {
+        console.error('Required DOM elements not found');
+        return;
+      }
+      
+      const selectedSupplierId = supplierField.value;
+      
+      // Hide any previous error messages
+      poErrorMessage.classList.add('d-none');
+      
+      // Clear all options except the first empty one
+      while (purchaseOrderField.options.length > 1) {
+        purchaseOrderField.remove(1);
+      }
+      
+      if (!selectedSupplierId) {
+        console.log('No supplier selected');
+        return; // No supplier selected, keep dropdown empty
+      }
+      
+      // Show loading option
+      const loadingOption = document.createElement('option');
+      loadingOption.text = 'Loading purchase orders...';
+      loadingOption.disabled = true;
+      purchaseOrderField.add(loadingOption);
+      
+      console.log(`Fetching purchase orders for supplier ID: ${selectedSupplierId}`);
+      
+      // Fetch purchase orders for the selected supplier
+      fetch(`/suppliers/api/${selectedSupplierId}/purchase-orders/`)
+        .then(response => {
+          if (!response.ok) {
+            // Check for specific HTTP status codes
+            if (response.status === 404) {
+              throw new Error('Supplier not found');
+            } else if (response.status === 403) {
+              throw new Error('You do not have permission to access this data');
+            } else if (response.status >= 500) {
+              throw new Error('Server error occurred. Please try again later.');
+            } else {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('API response:', data);
+          
+          // Check if response contains an error message
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          
+          // Remove the loading option
+          purchaseOrderField.remove(purchaseOrderField.options.length - 1);
+          
+          if (data.purchase_orders && data.purchase_orders.length > 0) {
+            // Add each purchase order to the dropdown
+            data.purchase_orders.forEach(po => {
+              console.log(`Adding PO: ${po.id} - ${po.purchase_date} - ₹${po.total_amount}`);
+              const option = document.createElement('option');
+              option.value = po.id;
+              
+              try {
+                // Format display text with invoice number if available
+                let displayText = '';
+                if (po.invoice_number) {
+                  displayText = `${po.invoice_number} - ${po.purchase_date} - ₹${po.total_amount}`;
+                } else {
+                  displayText = `PO-${po.id} - ${po.purchase_date} - ₹${po.total_amount}`;
+                }
+                
+                option.text = displayText;
+                purchaseOrderField.add(option);
+              } catch (err) {
+                console.error('Error formatting purchase order:', err);
+                option.text = `PO-${po.id} - Error formatting`;
+                purchaseOrderField.add(option);
+              }
+            });
+          } else {
+            // No purchase orders found
+            console.log('No purchase orders found for this supplier');
+            const noOrdersOption = document.createElement('option');
+            noOrdersOption.text = 'No purchase orders found for this supplier';
+            noOrdersOption.disabled = true;
+            purchaseOrderField.add(noOrdersOption);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching purchase orders:', error);
+          
+          // Remove the loading option
+          purchaseOrderField.remove(purchaseOrderField.options.length - 1);
+          
+          // Show error message in the form
+          poErrorMessage.textContent = `Error loading purchase orders: ${error.message}`;
+          poErrorMessage.classList.remove('d-none');
+          
+          // Show error message as option
+          const errorOption = document.createElement('option');
+          errorOption.text = 'Error loading purchase orders';
+          errorOption.disabled = true;
+          purchaseOrderField.add(errorOption);
+        });
+    }
+    
+    // Initial state
+    toggleDueDateField();
+    
+    // Add event listeners
+    paymentModeField.addEventListener('change', toggleDueDateField);
+    
+    // Purchase order change listener
+    purchaseOrderField.addEventListener('change', function() {
+      fetchPurchaseOrderDetails(this.value);
+    });
+    
+    // Only set up supplier change listener if the field is not readonly
+    if (!supplierField.hasAttribute('readonly')) {
+      supplierField.addEventListener('change', updatePurchaseOrders);
+      
+      // Trigger on initial load if a supplier is selected
+      if (supplierField.value) {
+        console.log(`Initial supplier value: ${supplierField.value}`);
+        updatePurchaseOrders();
+      }
+    } else {
+      console.log('Supplier field is readonly, not setting up change listener');
+    }
+    
+    // If purchase order is preselected, fetch its details
+    if (purchaseOrderField.value) {
+      fetchPurchaseOrderDetails(purchaseOrderField.value);
+    }
+    
+    // Validate payment amount doesn't exceed balance
+    amountPaidField.addEventListener('change', function() {
+      const balanceText = document.getElementById('po-balance').textContent;
+      if (balanceText && purchaseOrderField.value) {
+        const balance = parseFloat(balanceText.replace('₹', ''));
+        const amountPaid = parseFloat(this.value);
+        
+        if (amountPaid > balance && balance > 0) {
+          alert(`Warning: The payment amount (₹${amountPaid}) exceeds the balance due (${balanceText}). Please confirm this is correct.`);
+        }
+      }
+    });
+  });
+</script>
+{% endblock %} 

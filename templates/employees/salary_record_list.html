@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block title %}Salary Records | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-3">
+                <i class="bi bi-cash-coin text-primary me-2"></i>Salary Records
+            </h2>
+            <p class="text-muted">View and manage salary records for all employees.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'employees:salary_record_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Add Salary Record
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filter Form -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h5 class="mb-0">Filter Salary Records</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="employee" class="form-label">Employee</label>
+                    <select name="employee" id="employee" class="form-select">
+                        <option value="">All Employees</option>
+                        {% for employee in all_employees %}
+                        <option value="{{ employee.id }}" {% if request.GET.employee == employee.id|stringformat:"s" %}selected{% endif %}>
+                            {{ employee.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="month" class="form-label">Month</label>
+                    <input type="month" name="month" id="month" class="form-control" value="{{ request.GET.month }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="year" class="form-label">Year</label>
+                    <select name="year" id="year" class="form-select">
+                        <option value="">All Years</option>
+                        {% for year in years %}
+                        <option value="{{ year }}" {% if request.GET.year == year|stringformat:"s" %}selected{% endif %}>
+                            {{ year }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-filter me-2"></i>Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Salary Records List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Salary Payment Records</h5>
+            <div>
+                <span class="badge bg-primary">Total: ₹{{ total_amount|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Month</th>
+                            <th class="text-end">Amount</th>
+                            <th>Payment Date</th>
+                            <th>Notes</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in salary_records %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm me-2 bg-light rounded-circle">
+                                        <span class="avatar-initials">{{ record.employee.name|slice:":1" }}</span>
+                                    </div>
+                                    <div>
+                                        {{ record.employee.name }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ record.month|date:"F Y" }}</td>
+                            <td class="text-end">₹{{ record.amount|floatformat:2 }}</td>
+                            <td>{{ record.paid_on|date:"d M Y" }}</td>
+                            <td>{{ record.notes|truncatechars:30|default:"-" }}</td>
+                            <td class="text-end">
+                                <div class="btn-group">
+                                    <a href="{% url 'employees:salary_record_detail' record.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'employees:salary_record_update' record.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-cash-stack fs-1 d-block mb-3"></i>
+                                    <p>No salary records found.</p>
+                                    <a href="{% url 'employees:salary_record_create' %}" class="btn btn-sm btn-primary">
+                                        Add your first salary record
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mt-4">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if request.GET.employee %}&employee={{ request.GET.employee }}{% endif %}{% if request.GET.month %}&month={{ request.GET.month }}{% endif %}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}">First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.employee %}&employee={{ request.GET.employee }}{% endif %}{% if request.GET.month %}&month={{ request.GET.month }}{% endif %}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    <li class="page-item disabled">
+                        <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.employee %}&employee={{ request.GET.employee }}{% endif %}{% if request.GET.month %}&month={{ request.GET.month }}{% endif %}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.employee %}&employee={{ request.GET.employee }}{% endif %}{% if request.GET.month %}&month={{ request.GET.month }}{% endif %}{% if request.GET.year %}&year={{ request.GET.year }}{% endif %}">Last</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize any Select2 dropdowns if needed
+        if (typeof $.fn.select2 !== 'undefined') {
+            $('#employee').select2({
+                placeholder: 'Select an employee',
+                allowClear: true,
+                theme: 'bootstrap-5'
+            });
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+  {% if object %}Edit User: {{ object.username }}{% else %}Create New User{% endif %} | Amaravathi RMC
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">{% if object %}Edit User: {{ object.username }}{% else %}Create New User{% endif %}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {{ form|crispy }}
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                {% if object %}Update User{% else %}Create User{% endif %}
+                            </button>
+                            <a href="{% url 'users:user_list' %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            {% if object %}
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Reset Password</h5>
+                </div>
+                <div class="card-body">
+                    <p>If the user has forgotten their password, you can reset it to a default value.</p>
+                    <p class="text-danger">This will immediately change the user's password. They will need to change it on their next login.</p>
+                    <form method="post" action="{% url 'password_reset' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="email" value="{{ object.email }}">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-key me-2"></i>Send Password Reset Email
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

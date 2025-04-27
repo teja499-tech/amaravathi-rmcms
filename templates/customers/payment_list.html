@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer Payments{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Customer Payments</h1>
+        <div>
+            <a href="{% url 'customers:payment_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Record Payment
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0">All Payments</h5>
+            <form method="get" class="d-flex gap-2">
+                <select name="customer" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Customers</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}" {% if selected_customer == customer.id|stringformat:"s" %}selected{% endif %}>
+                        {{ customer.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control" placeholder="Search payments..." value="{{ search_query }}">
+                    <button class="btn btn-outline-secondary" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                {% if selected_customer or search_query %}
+                <a href="{% url 'customers:payment_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear
+                </a>
+                {% endif %}
+            </form>
+        </div>
+        <div class="card-body p-0">
+            {% if payments %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Customer</th>
+                            <th>Delivery</th>
+                            <th>Amount Paid</th>
+                            <th>Payment Date</th>
+                            <th>Payment Mode</th>
+                            <th>Due Date</th>
+                            <th>Reference No.</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'customers:customer_detail' payment.customer.id %}">
+                                    {{ payment.customer.name }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if payment.delivery %}
+                                <a href="{% url 'customers:delivery_detail' payment.delivery.id %}">
+                                    {{ payment.delivery.invoice_number }}
+                                </a>
+                                {% elif payment.concrete_delivery %}
+                                <a href="{% url 'customers:concrete_delivery_detail' payment.concrete_delivery.id %}">
+                                    {{ payment.concrete_delivery.invoice_number }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">General Payment</span>
+                                {% endif %}
+                            </td>
+                            <td>₹{{ payment.amount_paid }}</td>
+                            <td>{{ payment.payment_date }}</td>
+                            <td>{{ payment.payment_mode }}</td>
+                            <td>
+                                {% if payment.payment_mode.lower == 'credit' and payment.due_date %}
+                                    {{ payment.due_date }}
+                                    {% if payment.due_date < today %}
+                                        <span class="badge bg-danger ms-1">Overdue</span>
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ payment.reference_number|default:"-" }}</td>
+                            <td class="text-end">
+                                <div class="btn-group">
+                                    <a href="{% url 'customers:payment_update' payment.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'customers:payment_delete' payment.id %}" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center">
+                {% if request.GET.q %}
+                <p class="mb-0">No payments found matching your search.</p>
+                {% else %}
+                <p class="mb-0">No customer payments recorded yet.</p>
+                <a href="{% url 'customers:payment_create' %}" class="btn btn-primary mt-3">
+                    <i class="bi bi-plus-circle me-1"></i> Record First Payment
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% if payments.has_other_pages %}
+        <div class="card-footer bg-white">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    {% if payments.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ payments.previous_page_number }}{% if selected_customer %}&customer={{ selected_customer }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                    </li>
+                    {% endif %}
+                    
+                    {% for i in payments.paginator.page_range %}
+                        {% if payments.number == i %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ i }}</span>
+                        </li>
+                        {% elif i > payments.number|add:'-3' and i < payments.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ i }}{% if selected_customer %}&customer={{ selected_customer }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">{{ i }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if payments.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ payments.next_page_number }}{% if selected_customer %}&customer={{ selected_customer }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

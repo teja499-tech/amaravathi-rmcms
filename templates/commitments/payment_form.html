@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Record{% endif %} Payment | {{ commitment.title }} | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">{% if form.instance.pk %}Edit{% else %}Record{% endif %} Payment</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0 mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'commitments:commitment_list' %}">Commitments</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'commitments:commitment_detail' commitment.id %}">{{ commitment.title }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{% if form.instance.pk %}Edit{% else %}Record{% endif %} Payment</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% if form.instance.pk %}Edit{% else %}Record{% endif %} Payment Details</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="payment-form">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.payment_date|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.amount|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.payment_method|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.reference|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        {{ form.notes|as_crispy_field }}
+                        
+                        <div class="mt-4 text-right">
+                            <a href="{% url 'commitments:commitment_detail' commitment.id %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Payment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Commitment Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Title:</strong> {{ commitment.title }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Payee:</strong> {{ commitment.payee_name }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Category:</strong> {{ commitment.get_category_display }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Amount:</strong> ₹{{ commitment.amount|intcomma }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Frequency:</strong> {{ commitment.get_payment_frequency_display }}
+                    </div>
+                    {% if commitment.next_payment_date %}
+                    <div class="mb-3">
+                        <strong>Next Payment Due:</strong> 
+                        <span class="{% if commitment.next_payment_date < today %}text-danger{% elif commitment.next_payment_date == today %}text-warning{% endif %}">
+                            {{ commitment.next_payment_date|date:"M d, Y" }}
+                            {% if commitment.next_payment_date < today %}
+                            <span class="badge badge-danger">Overdue</span>
+                            {% elif commitment.next_payment_date == today %}
+                            <span class="badge badge-warning">Today</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    <hr>
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> Payment will be recorded for the commitment "<strong>{{ commitment.title }}</strong>".
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ form.instance.pk|yesno:"true,false"|json_script:"is-new-payment" }}
+{% if not form.instance.pk and commitment.amount %}
+{{ commitment.amount|json_script:"commitment-amount" }}
+{% endif %}
+
+<script>
+    $(document).ready(function() {
+        // Initialize datepicker for payment date
+        $('#id_payment_date').datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true,
+            todayHighlight: true
+        });
+        
+        // Set today as default date if it's a new payment
+        var isNewInstance = JSON.parse(document.getElementById('is-new-payment').textContent) === "false";
+        if (isNewInstance && !$('#id_payment_date').val()) {
+            $('#id_payment_date').datepicker('setDate', new Date());
+        }
+        
+        // If it's a new payment and there's a scheduled amount, use that as default
+        var commitmentAmountElement = document.getElementById('commitment-amount');
+        if (commitmentAmountElement && !$('#id_amount').val()) {
+            var commitmentAmount = JSON.parse(commitmentAmountElement.textContent);
+            $('#id_amount').val(commitmentAmount);
+        }
+    });
+</script>
+{% endblock %} 

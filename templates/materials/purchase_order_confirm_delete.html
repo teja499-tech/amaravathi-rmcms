@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Purchase Order | {{ purchase_order.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Delete Purchase Order</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Are you sure you want to delete the purchase order <strong>#{{ purchase_order.id }}</strong>?</p>
+                    
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Warning:</strong> This action cannot be undone. All items and inventory records associated with this purchase order will also be deleted.
+                    </div>
+                    
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th>Order ID:</th>
+                                <td>#{{ purchase_order.id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Supplier:</th>
+                                <td>{{ purchase_order.supplier.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Date:</th>
+                                <td>{{ purchase_order.purchase_date }}</td>
+                            </tr>
+                            <tr>
+                                <th>Total Amount:</th>
+                                <td>₹{{ purchase_order.total_amount }}</td>
+                            </tr>
+                            <tr>
+                                <th>Inventory Updated:</th>
+                                <td>
+                                    {% if purchase_order.inventory_updated %}
+                                        <span class="badge bg-success">Yes</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">No</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'materials:purchase_order_detail' purchase_order.pk %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

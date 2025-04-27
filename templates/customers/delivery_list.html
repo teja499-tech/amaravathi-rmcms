@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Deliveries{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/responsive-tables.css' %}" rel="stylesheet">
+<style>
+    .badge-regular, .badge-concrete {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.35em 0.65em;
+        border-radius: 0.25rem;
+    }
+    .badge-regular {
+        background-color: #36b9cc;
+        color: white;
+    }
+    .badge-concrete {
+        background-color: #1cc88a;
+        color: white;
+    }
+    .delivery-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        align-items: flex-end;
+    }
+    .delivery-filters .form-group {
+        flex: 1;
+        min-width: 200px;
+        margin-bottom: 0;
+    }
+    .delivery-filters .btn {
+        align-self: flex-end;
+    }
+    .btn-add-payment {
+        color: white;
+        background-color: #4e73df;
+    }
+    .btn-add-payment:hover {
+        background-color: #2653d4;
+        color: white;
+    }
+    .action-btns {
+        display: flex;
+        gap: 0.25rem;
+    }
+    @media (max-width: 768px) {
+        .delivery-filters {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .delivery-filters .form-group {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if concrete_only %}Concrete Deliveries{% elif regular_only %}Regular Deliveries{% else %}All Deliveries{% endif %}
+            </h6>
+            <div>
+                <a href="{% url 'customers:delivery_create' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> New Delivery
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="delivery-filters">
+                <div class="form-group">
+                    <label for="customerFilter">Customer</label>
+                    <select id="customerFilter" class="form-control">
+                        <option value="">All Customers</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}" {% if customer_id == customer.id %}selected{% endif %}>{{ customer.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="dateRangeFilter">Date Range</label>
+                    <input type="text" id="dateRangeFilter" class="form-control" placeholder="Select date range">
+                </div>
+                <div class="form-group">
+                    <label for="deliveryTypeFilter">Delivery Type</label>
+                    <select id="deliveryTypeFilter" class="form-control">
+                        <option value="">All Types</option>
+                        <option value="regular" {% if regular_only %}selected{% endif %}>Regular</option>
+                        <option value="concrete" {% if concrete_only %}selected{% endif %}>Concrete</option>
+                    </select>
+                </div>
+                <button id="applyFilters" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Apply Filters
+                </button>
+            </div>
+
+            <button class="btn btn-sm btn-outline-primary card-view-toggle mb-3">
+                <i class="fas fa-th-large"></i> Toggle Card View
+            </button>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-responsive-custom" id="deliveryTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Invoice #</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th class="numeric-column">Total Amount</th>
+                            <th class="numeric-column">Received</th>
+                            <th class="numeric-column">Balance</th>
+                            <th>Concrete Details</th>
+                            <th class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for delivery in deliveries %}
+                        <tr>
+                            <td data-label="Type">
+                                {% if delivery.is_concrete %}
+                                <span class="badge badge-concrete">Concrete</span>
+                                {% else %}
+                                <span class="badge badge-regular">Regular</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Invoice #">{{ delivery.invoice_number }}</td>
+                            <td data-label="Customer">{{ delivery.customer.name }}</td>
+                            <td data-label="Date">{{ delivery.date|date:"M d, Y" }}</td>
+                            <td class="numeric-column" data-label="Total Amount">₹{{ delivery.total_amount|floatformat:2 }}</td>
+                            <td class="numeric-column" data-label="Received">₹{{ delivery.amount_received|floatformat:2 }}</td>
+                            <td class="numeric-column" data-label="Balance">₹{{ delivery.balance|floatformat:2 }}</td>
+                            <td data-label="Concrete Details">
+                                {% if delivery.is_concrete %}
+                                {{ delivery.concrete_grade }} - {{ delivery.quantity }}m³
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td class="actions-column" data-label="Actions">
+                                <div class="action-btns">
+                                    <button class="btn btn-sm btn-add-payment" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#paymentModal" 
+                                            data-id="{{ delivery.id }}" 
+                                            data-type="{% if delivery.is_concrete %}concrete{% else %}regular{% endif %}"
+                                            data-customer-name="{{ delivery.customer.name }}"
+                                            data-customer-id="{{ delivery.customer.id }}"
+                                            data-invoice="{{ delivery.invoice_number }}"
+                                            data-balance="{{ delivery.balance }}">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </button>
+                                    
+                                    {% if delivery.is_concrete %}
+                                    <a href="{% url 'customers:concrete_delivery_detail' delivery.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'customers:concrete_delivery_update' delivery.id %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <!-- Delete link removed as URL pattern doesn't exist -->
+                                    {% else %}
+                                    <a href="{% url 'customers:delivery_detail' delivery.id %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'customers:delivery_update' delivery.id %}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <!-- Delete link removed as URL pattern doesn't exist -->
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center">No deliveries found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if deliveries.has_other_pages %}
+            <div class="d-flex justify-content-center mt-4">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        {% if deliveries.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if customer_id %}&customer_id={{ customer_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if concrete_only %}&concrete_only=1{% endif %}{% if regular_only %}&regular_only=1{% endif %}" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ deliveries.previous_page_number }}{% if customer_id %}&customer_id={{ customer_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if concrete_only %}&concrete_only=1{% endif %}{% if regular_only %}&regular_only=1{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for i in deliveries.paginator.page_range %}
+                            {% if deliveries.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                            {% elif i > deliveries.number|add:'-3' and i < deliveries.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ i }}{% if customer_id %}&customer_id={{ customer_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if concrete_only %}&concrete_only=1{% endif %}{% if regular_only %}&regular_only=1{% endif %}">{{ i }}</a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if deliveries.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ deliveries.next_page_number }}{% if customer_id %}&customer_id={{ customer_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if concrete_only %}&concrete_only=1{% endif %}{% if regular_only %}&regular_only=1{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ deliveries.paginator.num_pages }}{% if customer_id %}&customer_id={{ customer_id }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if concrete_only %}&concrete_only=1{% endif %}{% if regular_only %}&regular_only=1{% endif %}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">Add Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="payment-form" method="POST" action="{% url 'customers:payment_create' %}">
+                    {% csrf_token %}
+                    <!-- Hidden fields to store delivery information -->
+                    <input type="hidden" id="deliveryId" name="delivery_id">
+                    <input type="hidden" id="deliveryType" name="delivery_type">
+                    <input type="hidden" id="customerId" name="customer">
+                    <input type="hidden" id="regularDeliveryId" name="regular_delivery">
+                    <input type="hidden" id="concreteDeliveryId" name="concrete_delivery">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Customer</label>
+                        <input type="text" class="form-control" id="customerName" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Invoice</label>
+                        <input type="text" class="form-control" id="invoiceNumber" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Balance Amount</label>
+                        <input type="text" class="form-control" id="balanceAmount" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Amount Received</label>
+                        <input type="number" class="form-control" id="amountReceived" name="amount_received" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Payment Date</label>
+                        <input type="date" class="form-control" id="paymentDate" name="payment_date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Payment Mode</label>
+                        <select class="form-select" id="paymentMode" name="payment_mode" required>
+                            <option value="Cash">Cash</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Credit">Credit</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3 due-date-field" style="display:none;">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" class="form-control" id="dueDate" name="due_date">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Reference Number</label>
+                        <input type="text" class="form-control" id="referenceNumber" name="reference_number">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Remarks</label>
+                        <textarea class="form-control" id="remarks" name="remarks" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="payment-form" class="btn btn-primary">Submit Payment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for handling payment modal -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set today's date as default for payment date
+        document.getElementById('paymentDate').valueAsDate = new Date();
+        
+        // Show/hide due date field based on payment mode
+        document.getElementById('paymentMode').addEventListener('change', function() {
+            const dueDateField = document.querySelector('.due-date-field');
+            if (this.value === 'Credit') {
+                dueDateField.style.display = 'block';
+                document.getElementById('dueDate').required = true;
+            } else {
+                dueDateField.style.display = 'none';
+                document.getElementById('dueDate').required = false;
+            }
+        });
+        
+        // Add event listeners for payment buttons
+        document.querySelectorAll('.add-payment-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const deliveryId = this.getAttribute('data-id');
+                const deliveryType = this.getAttribute('data-type');
+                const customerId = this.getAttribute('data-customer');
+                const customerName = this.getAttribute('data-customer-name');
+                const invoiceNumber = this.getAttribute('data-invoice');
+                const balanceAmount = this.getAttribute('data-balance');
+                
+                // Set values in the form
+                document.getElementById('deliveryId').value = deliveryId;
+                document.getElementById('deliveryType').value = deliveryType;
+                document.getElementById('customerId').value = customerId;
+                document.getElementById('customerName').value = customerName;
+                document.getElementById('invoiceNumber').value = invoiceNumber;
+                document.getElementById('balanceAmount').value = balanceAmount;
+                document.getElementById('amountReceived').value = balanceAmount;
+                
+                // Set the appropriate delivery ID field based on type
+                if (deliveryType === 'regular') {
+                    document.getElementById('regularDeliveryId').value = deliveryId;
+                    document.getElementById('concreteDeliveryId').value = '';
+                } else {
+                    document.getElementById('concreteDeliveryId').value = deliveryId;
+                    document.getElementById('regularDeliveryId').value = '';
+                }
+                
+                // Show the modal
+                const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+                paymentModal.show();
+            });
+        });
+    });
+</script>
+{% endblock %} 

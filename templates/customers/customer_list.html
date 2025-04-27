@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Customers | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-column flex-md-row align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Customers</h1>
+        <div class="mt-3 mt-md-0">
+            <a href="{% url 'customers:risk_assessment' %}" class="btn btn-info me-2">
+                <i class="bi bi-shield-exclamation me-2"></i>Risk Assessment
+            </a>
+            <a href="{% url 'customers:customer_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Add Customer
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+            <h6 class="m-0 font-weight-bold mb-2 mb-md-0">Customer List</h6>
+            <div class="input-group w-100 w-md-50">
+                <form method="get" action="{% url 'customers:customer_list' %}" class="d-flex w-100">
+                    <input type="text" name="search" class="form-control" placeholder="Search customers..." 
+                           value="{{ search_query }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-responsive-custom">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>GST Number</th>
+                            <th>Status</th>
+                            <th>Risk</th>
+                            <th class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if customers %}
+                            {% for customer in customers %}
+                                <tr>
+                                    <td data-label="Name">{{ customer.name }}</td>
+                                    <td data-label="Phone">{{ customer.phone }}</td>
+                                    <td data-label="Email">{{ customer.email|default:"-" }}</td>
+                                    <td data-label="GST Number">{{ customer.gst_number|default:"-" }}</td>
+                                    <td data-label="Status">
+                                        {% if customer.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td data-label="Risk">
+                                        {% if customer.risk_score == 'HIGH' %}
+                                            <span class="badge bg-danger">High Risk</span>
+                                        {% elif customer.risk_score == 'MEDIUM' %}
+                                            <span class="badge bg-warning">Medium Risk</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Low Risk</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="actions-column" data-label="Actions">
+                                        <a href="{% url 'customers:customer_detail' customer.pk %}" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{% url 'customers:customer_update' customer.pk %}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">No customers found.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if is_paginated %}
+            <div class="mt-4">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

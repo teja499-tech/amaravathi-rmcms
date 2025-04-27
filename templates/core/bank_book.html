@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Bank Book{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <h2 class="mb-3">Bank Book</h2>
+    
+    <!-- Filters Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <input type="hidden" name="type" value="bank">
+                
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                
+                <div class="col-md-3">
+                    <label for="bank_account" class="form-label">Bank Account</label>
+                    <select class="form-select" id="bank_account" name="bank_account">
+                        <option value="">All Bank Accounts</option>
+                        {% for account in bank_accounts %}
+                            <option value="{{ account.id }}" {% if selected_bank == account.id %}selected{% endif %}>{{ account.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{% url 'core:bank_book' %}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+                
+                <div class="col-12 text-end">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-download me-1"></i> Export
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                            <li><a class="dropdown-item" href="{% url 'core:export_bank_book' 'pdf' %}?{{ request.GET.urlencode }}">PDF</a></li>
+                            <li><a class="dropdown-item" href="{% url 'core:export_bank_book' 'excel' %}?{{ request.GET.urlencode }}">Excel</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Opening Balance</h5>
+                    <h3 class="card-text">₹ {{ opening_balance|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Deposits</h5>
+                    <h3 class="card-text">₹ {{ total_receipts|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Withdrawals</h5>
+                    <h3 class="card-text">₹ {{ total_payments|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Closing Balance</h5>
+                    <h3 class="card-text">₹ {{ closing_balance|intcomma }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bank Book Entries -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th>Bank Account</th>
+                            <th class="text-end">Deposits (₹)</th>
+                            <th class="text-end">Withdrawals (₹)</th>
+                            <th class="text-end">Balance (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Opening Balance Row -->
+                        <tr class="table-secondary">
+                            <td>{{ start_date }}</td>
+                            <td><strong>Opening Balance</strong></td>
+                            <td></td>
+                            <td>{% if selected_bank_name %}{{ selected_bank_name }}{% else %}All Banks{% endif %}</td>
+                            <td class="text-end">-</td>
+                            <td class="text-end">-</td>
+                            <td class="text-end"><strong>{{ opening_balance|intcomma }}</strong></td>
+                        </tr>
+                        
+                        {% if day_wise_entries %}
+                            {% for date_str, day_data in day_wise_entries.items %}
+                                <!-- Day Header with Totals -->
+                                <tr class="table-light">
+                                    <td>{{ day_data.date|date:"d-M-Y" }}</td>
+                                    <td><strong>--- {{ day_data.date|date:"d F Y" }} ---</strong></td>
+                                    <td><strong>Daily Total</strong></td>
+                                    <td></td>
+                                    <td class="text-end"><strong>{{ day_data.total_receipts|intcomma }}</strong></td>
+                                    <td class="text-end"><strong>{{ day_data.total_payments|intcomma }}</strong></td>
+                                    <td class="text-end"><strong>{{ day_data.closing_balance|intcomma }}</strong></td>
+                                </tr>
+                                
+                                <!-- Individual Transactions -->
+                                {% for transaction in day_data.transactions %}
+                                    <tr>
+                                        <td>{{ transaction.date|date:"d-M-Y" }}</td>
+                                        <td>{{ transaction.description }}</td>
+                                        <td>{{ transaction.reference }}</td>
+                                        <td>{{ transaction.bank_account }}</td>
+                                        <td class="text-end {% if transaction.receipt_amount > 0 %}text-success{% endif %}">
+                                            {% if transaction.receipt_amount > 0 %}
+                                                {{ transaction.receipt_amount|intcomma }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end {% if transaction.payment_amount > 0 %}text-danger{% endif %}">
+                                            {% if transaction.payment_amount > 0 %}
+                                                {{ transaction.payment_amount|intcomma }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">-</td>
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">No transactions found for the selected period.</td>
+                            </tr>
+                        {% endif %}
+                        
+                        <!-- Grand Total Row -->
+                        <tr class="table-primary">
+                            <td colspan="4"><strong>Grand Total</strong></td>
+                            <td class="text-end"><strong>{{ total_receipts|intcomma }}</strong></td>
+                            <td class="text-end"><strong>{{ total_payments|intcomma }}</strong></td>
+                            <td class="text-end"><strong>{{ closing_balance|intcomma }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

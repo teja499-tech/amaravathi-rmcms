@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+
+{% block title %}Viewer Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body d-flex align-items-center">
+                    <i class="bi bi-eye fs-1 text-primary me-3"></i>
+                    <div>
+                        <h2 class="mb-0">Viewer Dashboard</h2>
+                        <p class="text-muted mb-0">Welcome, {{ user.full_name|default:user.username }}</p>
+                    </div>
+                    <div class="ms-auto">
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle" type="button" id="reportsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-file-earmark-text me-2"></i>Reports
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-bar-graph me-2"></i>Financial Reports</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-people me-2"></i>User Activity</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-calendar-check me-2"></i>Project Status</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i>Download All</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="display-4 text-primary mb-2">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h5 class="card-title">Active Users</h5>
+                    <h2 class="mb-0">324</h2>
+                    <p class="text-success mb-0">
+                        <i class="bi bi-arrow-up"></i> 5.2% from last month
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="display-4 text-success mb-2">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <h5 class="card-title">Completed Tasks</h5>
+                    <h2 class="mb-0">152</h2>
+                    <p class="text-success mb-0">
+                        <i class="bi bi-arrow-up"></i> 12.4% from last month
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="display-4 text-warning mb-2">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <h5 class="card-title">Pending Tasks</h5>
+                    <h2 class="mb-0">48</h2>
+                    <p class="text-danger mb-0">
+                        <i class="bi bi-arrow-up"></i> 3.7% from last month
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="display-4 text-info mb-2">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </div>
+                    <h5 class="card-title">Reports</h5>
+                    <h2 class="mb-0">18</h2>
+                    <p class="text-success mb-0">
+                        <i class="bi bi-arrow-up"></i> 24.3% from last month
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">System Overview</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active">Daily</button>
+                        <button type="button" class="btn btn-outline-secondary">Weekly</button>
+                        <button type="button" class="btn btn-outline-secondary">Monthly</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="systemOverviewChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">User Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="userDistributionChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Activities</h5>
+                    <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">New user registered</h6>
+                                <small class="text-muted">5 mins ago</small>
+                            </div>
+                            <p class="mb-1">Rohan Sharma registered a new account with role: Accountant</p>
+                            <small class="text-muted">By: System</small>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Invoice generated</h6>
+                                <small class="text-muted">1 hour ago</small>
+                            </div>
+                            <p class="mb-1">Invoice #INV-2023-045 was generated for Aditya Industries</p>
+                            <small class="text-muted">By: Priya Patel</small>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Payment received</h6>
+                                <small class="text-muted">3 hours ago</small>
+                            </div>
+                            <p class="mb-1">Payment of ₹78,250 received for Invoice #INV-2023-044</p>
+                            <small class="text-muted">By: Ananya Singh</small>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">System backup completed</h6>
+                                <small class="text-muted">Yesterday</small>
+                            </div>
+                            <p class="mb-1">Automated system backup completed successfully</p>
+                            <small class="text-muted">By: System</small>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Monthly report generated</h6>
+                                <small class="text-muted">Yesterday</small>
+                            </div>
+                            <p class="mb-1">June 2023 financial report was generated and sent to admins</p>
+                            <small class="text-muted">By: System</small>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">System Health</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label d-flex justify-content-between">
+                            <span>CPU Usage</span>
+                            <span>32%</span>
+                        </label>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 32%" aria-valuenow="32" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-flex justify-content-between">
+                            <span>Memory Usage</span>
+                            <span>54%</span>
+                        </label>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 54%" aria-valuenow="54" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-flex justify-content-between">
+                            <span>Disk Space</span>
+                            <span>71%</span>
+                        </label>
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: 71%" aria-valuenow="71" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-flex justify-content-between">
+                            <span>Database Size</span>
+                            <span>38%</span>
+                        </label>
+                        <div class="progress">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: 38%" aria-valuenow="38" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-check-circle-fill me-2"></i>All systems operating normally
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">Recent Documents</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1"><i class="bi bi-file-earmark-pdf text-danger me-2"></i>Monthly Financial Report.pdf</h6>
+                                <small>15 Jun</small>
+                            </div>
+                            <small class="text-muted">2.3 MB</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1"><i class="bi bi-file-earmark-excel text-success me-2"></i>User Activity Log.xlsx</h6>
+                                <small>14 Jun</small>
+                            </div>
+                            <small class="text-muted">1.8 MB</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1"><i class="bi bi-file-earmark-word text-primary me-2"></i>System Documentation.docx</h6>
+                                <small>12 Jun</small>
+                            </div>
+                            <small class="text-muted">4.2 MB</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1"><i class="bi bi-file-earmark-text text-secondary me-2"></i>Release Notes.txt</h6>
+                                <small>10 Jun</small>
+                            </div>
+                            <small class="text-muted">0.3 MB</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1"><i class="bi bi-file-earmark-slides text-warning me-2"></i>Quarterly Presentation.pptx</h6>
+                                <small>08 Jun</small>
+                            </div>
+                            <small class="text-muted">5.7 MB</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Chart.js for data visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Execute charts when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // System Overview Chart
+        const systemOverviewChart = new Chart(
+            document.getElementById('systemOverviewChart').getContext('2d'),
+            {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                    datasets: [
+                        {
+                            label: 'User Logins',
+                            data: [12, 8, 45, 67, 82, 34],
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            borderColor: 'rgba(13, 110, 253, 1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Transactions',
+                            data: [5, 3, 28, 42, 36, 19],
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            borderColor: 'rgba(25, 135, 84, 1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Reports Generated',
+                            data: [2, 1, 5, 7, 8, 3],
+                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                            borderColor: 'rgba(255, 193, 7, 1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            }
+        );
+
+        // User Distribution Chart
+        const userDistributionChart = new Chart(
+            document.getElementById('userDistributionChart').getContext('2d'),
+            {
+                type: 'doughnut',
+                data: {
+                    labels: ['Admin', 'Accountant', 'Viewer'],
+                    datasets: [{
+                        data: [12, 45, 267],
+                        backgroundColor: [
+                            'rgba(220, 53, 69, 0.8)',
+                            'rgba(13, 110, 253, 0.8)',
+                            'rgba(25, 135, 84, 0.8)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            }
+        );
+    });
+</script>
+{% endblock %} 

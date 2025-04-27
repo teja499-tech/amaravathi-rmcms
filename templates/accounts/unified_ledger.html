@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Unified Ledger | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-3">
+                <i class="bi bi-journal-text text-primary me-2"></i> Unified Ledger
+            </h2>
+            <p class="text-muted">View all financial transactions in one place</p>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-funnel me-2"></i> Filters
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" name="start_date" id="start_date" class="form-control" 
+                          value="{{ start_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" name="end_date" id="end_date" class="form-control" 
+                          value="{{ end_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" name="search" id="search" class="form-control" 
+                          placeholder="Search by description or reference..." value="{{ form.search.value|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="entity" class="form-label">Entity Name</label>
+                    <input type="text" name="entity" id="entity" class="form-control" 
+                          placeholder="Filter by customer, supplier or payee name..." value="{{ form.entity.value|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="transaction_type" class="form-label">Transaction Type</label>
+                    <select name="transaction_type" id="transaction_type" class="form-select">
+                        <option value="">All Types</option>
+                        {% for key, name in form.fields.transaction_type.choices %}
+                        <option value="{{ key }}" {% if form.transaction_type.value == key %}selected{% endif %}>
+                            {{ name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search me-2"></i>Apply Filters
+                    </button>
+                    <a href="{% url 'accounts:unified_ledger' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-2"></i>Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 text-uppercase fw-bold mb-1">
+                                Total Inflow
+                            </h6>
+                            <h5 class="mb-0 fw-bold">₹{{ total_inflow|floatformat:2 }}</h5>
+                        </div>
+                        <i class="bi bi-arrow-down-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-danger text-white shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 text-uppercase fw-bold mb-1">
+                                Total Outflow
+                            </h6>
+                            <h5 class="mb-0 fw-bold">₹{{ total_outflow|floatformat:2 }}</h5>
+                        </div>
+                        <i class="bi bi-arrow-up-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 text-uppercase fw-bold mb-1">
+                                Net Cash Flow
+                            </h6>
+                            <h5 class="mb-0 fw-bold">₹{{ net_cash_flow|floatformat:2 }}</h5>
+                        </div>
+                        <i class="bi bi-arrow-left-right fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-info text-white shadow">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 text-uppercase fw-bold mb-1">
+                                Transactions
+                            </h6>
+                            <h5 class="mb-0 fw-bold">{{ transaction_count }}</h5>
+                        </div>
+                        <i class="bi bi-list-ul fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Transactions Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-table me-2"></i> Transactions
+            </h5>
+            <div>
+                <a href="{% url 'accounts:cash_transaction_create' %}" class="btn btn-sm btn-primary me-2">
+                    <i class="bi bi-plus-circle me-1"></i> Add Cash Transaction
+                </a>
+                <a href="{% url 'accounts:transaction_create' %}" class="btn btn-sm btn-success">
+                    <i class="bi bi-plus-circle me-1"></i> Add Bank Transaction
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th>Type</th>
+                            <th class="text-end">Inflow</th>
+                            <th class="text-end">Outflow</th>
+                            <th>Related To</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.date|date:"d M Y" }}</td>
+                            <td>{{ transaction.description }}</td>
+                            <td>{{ transaction.reference_number|default:"-" }}</td>
+                            <td>
+                                {% if transaction.transaction_type == 'income' %}
+                                <span class="badge bg-success">Income</span>
+                                {% elif transaction.transaction_type == 'expense' %}
+                                <span class="badge bg-danger">Expense</span>
+                                {% elif transaction.transaction_type == 'purchase' %}
+                                <span class="badge bg-danger">Purchase</span>
+                                {% elif transaction.transaction_type == 'sale' %}
+                                <span class="badge bg-success">Sale</span>
+                                {% elif transaction.transaction_type == 'transfer' %}
+                                <span class="badge bg-primary">Transfer</span>
+                                {% elif transaction.transaction_type == 'adjustment' %}
+                                <span class="badge bg-warning">Adjustment</span>
+                                {% elif transaction.transaction_type == 'operational' %}
+                                <span class="badge bg-info">Operational</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if transaction.transaction_type in 'income,sale' %}
+                                ₹{{ transaction.amount|floatformat:2 }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if transaction.transaction_type in 'expense,purchase,operational' %}
+                                ₹{{ transaction.amount|floatformat:2 }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if transaction.customer %}
+                                <span class="badge bg-primary">{{ transaction.customer.name }}</span>
+                                {% elif transaction.supplier %}
+                                <span class="badge bg-secondary">{{ transaction.supplier.name }}</span>
+                                {% elif transaction.commitment %}
+                                <span class="badge bg-info">{{ transaction.commitment.payee_name }}</span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if transaction.transaction %}
+                                <a href="{% url 'accounts:transaction_update' transaction.transaction.id %}" class="btn btn-sm btn-info">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% else %}
+                                <a href="{% url 'accounts:cash_transaction_update' transaction.id %}" class="btn btn-sm btn-info">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">No transactions found. Try adjusting your filters or adding new transactions.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

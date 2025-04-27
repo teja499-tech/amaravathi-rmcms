@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% load crispy_forms_tags %}
+
+{% block title %}Record Payment - {{ commitment.title }} | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Record Payment</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0 mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'commitments:commitment_list' %}">Commitments</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'commitments:commitment_detail' commitment.id %}">{{ commitment.title }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Record Payment</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Commitment Summary Card -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Commitment Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h4 class="font-weight-bold">{{ commitment.title }}</h4>
+                        <span class="badge badge-pill {% if commitment.status == 'active' %}badge-success{% elif commitment.status == 'completed' %}badge-primary{% elif commitment.status == 'on_hold' %}badge-warning{% elif commitment.status == 'terminated' %}badge-danger{% endif %}">
+                            {{ commitment.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-borderless">
+                            <tbody>
+                                <tr>
+                                    <th>Payee:</th>
+                                    <td>{{ commitment.payee_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Amount:</th>
+                                    <td>₹{{ commitment.amount|intcomma }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Frequency:</th>
+                                    <td>{{ commitment.get_payment_frequency_display }}</td>
+                                </tr>
+                                {% if commitment.status == 'active' and commitment.next_payment_date %}
+                                <tr>
+                                    <th>Next Due:</th>
+                                    <td>
+                                        <span class="{% if commitment.next_payment_date < today %}text-danger{% elif commitment.next_payment_date|date:'Y-m-d' == today|date:'Y-m-d' %}text-warning{% endif %}">
+                                            {{ commitment.next_payment_date|date:"M d, Y" }}
+                                            {% if commitment.next_payment_date < today %}
+                                            <span class="badge badge-danger">Overdue</span>
+                                            {% elif commitment.next_payment_date|date:'Y-m-d' == today|date:'Y-m-d' %}
+                                            <span class="badge badge-warning">Today</span>
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <th>Category:</th>
+                                    <td>{{ commitment.get_category_display }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{% url 'commitments:commitment_detail' commitment.id %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Form Card -->
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Payment Details</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="" class="payment-form" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.payment_date|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.amount|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.payment_method|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.reference_number|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <!-- Bank account fields (shown/hidden based on payment method) -->
+                        <div class="row bank-fields" style="display: none;">
+                            <div class="col-md-6 mb-3">
+                                {{ form.bank_account|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.transaction_id|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.notes|as_crispy_field }}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.receipt|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3 form-check mt-4">
+                                <div class="custom-control custom-checkbox">
+                                    {{ form.update_next_payment_date }}
+                                    <label class="custom-control-label" for="{{ form.update_next_payment_date.id_for_label }}">
+                                        Update next payment date?
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    If checked, the next payment date will be updated based on the payment frequency.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-center">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-save me-1"></i> Save Payment
+                            </button>
+                            <a href="{% url 'commitments:commitment_detail' commitment.id %}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Set default date to today if it's a new payment
+        if (!$("#{{ form.payment_date.id_for_label }}").val()) {
+            $("#{{ form.payment_date.id_for_label }}").val("{{ today|date:'Y-m-d' }}");
+        }
+        
+        // Default amount to commitment amount if it's a new payment
+        if (!$("#{{ form.amount.id_for_label }}").val()) {
+            $("#{{ form.amount.id_for_label }}").val("{{ commitment.amount }}");
+        }
+        
+        // Show/hide bank fields based on payment method
+        function toggleBankFields() {
+            var method = $("#{{ form.payment_method.id_for_label }}").val();
+            if (method === 'bank_transfer' || method === 'check' || method === 'upi') {
+                $(".bank-fields").slideDown();
+            } else {
+                $(".bank-fields").slideUp();
+            }
+        }
+        
+        // Initial toggle
+        toggleBankFields();
+        
+        // Listen for changes
+        $("#{{ form.payment_method.id_for_label }}").change(function() {
+            toggleBankFields();
+        });
+        
+        // Custom file input styling
+        $('input[type="file"]').on('change', function() {
+            var fileName = $(this).val().split('\\').pop();
+            $(this).next('.custom-file-label').html(fileName || 'Choose file');
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,12 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /accounts/
+Disallow: /users/
+Disallow: /dashboard/
+Allow: /
+Allow: /health/
+
+# Disallow all bots from staging/development environments
+User-agent: *
+Host: *.onrender.com
+Disallow: / 

@@ -1,0 +1,485 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  {% if form.instance.id %}Edit Payment{% else %}Record Payment{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row mb-4">
+    <div class="col">
+      <h1 class="h3">
+        {% if form.instance.id %}
+          Edit Payment
+        {% else %}
+          Record Customer Payment
+        {% endif %}
+      </h1>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card shadow">
+        <div class="card-body p-4">
+          <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {% for error in form.non_field_errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="mb-3">
+              <label for="{{ form.customer.id_for_label }}" class="form-label">Customer*</label>
+              {{ form.customer }}
+              {% if form.customer.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.customer.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Delivery Type</label>
+              {{ form.delivery_type }}
+              <div class="form-text">Select the type of delivery this payment is for</div>
+            </div>
+            
+            <div class="mb-3" id="regular_delivery_field">
+              <label for="{{ form.delivery.id_for_label }}" class="form-label">Regular Delivery</label>
+              {{ form.delivery }}
+              <div class="form-text">Select the regular delivery this payment is for</div>
+              {% if form.delivery.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.delivery.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3" id="concrete_delivery_field">
+              <label for="{{ form.concrete_delivery.id_for_label }}" class="form-label">Concrete Delivery</label>
+              {{ form.concrete_delivery }}
+              <div class="form-text">Select the concrete delivery this payment is for</div>
+              {% if form.concrete_delivery.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.concrete_delivery.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.amount_paid.id_for_label }}" class="form-label">Amount Paid*</label>
+              {{ form.amount_paid }}
+              {% if form.amount_paid.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.amount_paid.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.payment_date.id_for_label }}" class="form-label">Payment Date*</label>
+              {{ form.payment_date }}
+              {% if form.payment_date.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.payment_date.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.payment_mode.id_for_label }}" class="form-label">Payment Mode*</label>
+              {{ form.payment_mode }}
+              {% if form.payment_mode.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.payment_mode.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3" id="due_date_field">
+              <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date{% if form.instance.payment_mode == 'CREDIT' %}*{% endif %}</label>
+              {{ form.due_date }}
+              <div class="form-text">Required for credit payments</div>
+              {% if form.due_date.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.due_date.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.reference_number.id_for_label }}" class="form-label">Reference Number</label>
+              {{ form.reference_number }}
+              <div class="form-text">Cheque number, transaction ID, etc.</div>
+              {% if form.reference_number.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.reference_number.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+              {{ form.notes }}
+              {% if form.notes.errors %}
+              <div class="invalid-feedback d-block">
+                {% for error in form.notes.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+              <a href="{% url 'customers:payment_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i> Save Payment
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card shadow">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Help</h5>
+        </div>
+        <div class="card-body">
+          <p><strong>Recording Payments:</strong></p>
+          <ul>
+            <li>Select the customer who made the payment</li>
+            <li>Optionally link this payment to a specific delivery</li>
+            <li>Enter the amount paid and payment date</li>
+            <li>Select the payment method used</li>
+            <li>For credit payments, specify the due date</li>
+            <li>Add reference numbers like cheque number or transaction ID</li>
+            <li>Include any additional notes about this payment</li>
+          </ul>
+          <p class="mb-0 text-muted"><small>All fields marked with * are required</small></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const paymentModeField = document.querySelector('#id_payment_mode');
+    const dueDateField = document.querySelector('#due_date_field');
+    const customerField = document.querySelector('#id_customer');
+    const deliveryField = document.querySelector('#id_delivery');
+    const concreteDeliveryField = document.querySelector('#id_concrete_delivery');
+    const amountField = document.querySelector('#id_amount_paid');
+    const deliveryTypeField = document.querySelector('#id_delivery_type');
+    const regularDeliveryFieldDiv = document.querySelector('#regular_delivery_field');
+    const concreteDeliveryFieldDiv = document.querySelector('#concrete_delivery_field');
+    
+    // Create a loading indicator
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'spinner-border spinner-border-sm text-primary ms-2';
+    loadingIndicator.setAttribute('role', 'status');
+    loadingIndicator.innerHTML = '<span class="visually-hidden">Loading...</span>';
+    
+    // Create a delivery info display div
+    const deliveryInfoDisplay = document.createElement('div');
+    deliveryInfoDisplay.className = 'mt-2 p-2 bg-light border rounded';
+    deliveryInfoDisplay.id = 'delivery_info_display';
+    deliveryInfoDisplay.style.display = 'none';
+    
+    // Add it after both delivery fields
+    deliveryField.parentNode.appendChild(deliveryInfoDisplay.cloneNode(true));
+    concreteDeliveryField.parentNode.appendChild(deliveryInfoDisplay.cloneNode(true));
+    
+    // Function to update regular delivery options based on selected customer
+    function updateRegularDeliveryOptions() {
+      if (!customerField.value) {
+        // Clear options if no customer selected
+        deliveryField.innerHTML = '<option value="">Select delivery</option>';
+        return;
+      }
+      
+      // Show loading indicator
+      const label = document.querySelector(`label[for="${deliveryField.id}"]`);
+      if (!label.querySelector('.spinner-border')) {
+        label.appendChild(loadingIndicator.cloneNode(true));
+      }
+      
+      // Fetch deliveries for the selected customer
+      fetch(`/customers/api/deliveries/?customer=${customerField.value}`)
+        .then(response => response.json())
+        .then(data => {
+          // Remove loading indicator
+          const spinner = label.querySelector('.spinner-border');
+          if (spinner) spinner.remove();
+          
+          // Clear existing options
+          deliveryField.innerHTML = '<option value="">Select delivery</option>';
+          
+          // Add new options
+          data.forEach(delivery => {
+            const option = document.createElement('option');
+            option.value = delivery.id;
+            option.textContent = `${delivery.invoice_number} - ₹${delivery.total_amount} (₹${delivery.balance} due)`;
+            option.dataset.balance = delivery.balance;
+            deliveryField.appendChild(option);
+          });
+          
+          if (data.length === 0) {
+            const option = document.createElement('option');
+            option.disabled = true;
+            option.textContent = 'No deliveries with outstanding balance';
+            deliveryField.appendChild(option);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching deliveries:', error);
+          // Remove loading indicator on error
+          const spinner = label.querySelector('.spinner-border');
+          if (spinner) spinner.remove();
+        });
+    }
+    
+    // Function to update concrete delivery options based on selected customer
+    function updateConcreteDeliveryOptions() {
+      if (!customerField.value) {
+        // Clear options if no customer selected
+        concreteDeliveryField.innerHTML = '<option value="">Select concrete delivery</option>';
+        return;
+      }
+      
+      // Show loading indicator
+      const label = document.querySelector(`label[for="${concreteDeliveryField.id}"]`);
+      if (!label.querySelector('.spinner-border')) {
+        label.appendChild(loadingIndicator.cloneNode(true));
+      }
+      
+      // Fetch concrete deliveries for the selected customer
+      fetch(`/customers/api/concrete-deliveries/?customer=${customerField.value}`)
+        .then(response => response.json())
+        .then(data => {
+          // Remove loading indicator
+          const spinner = label.querySelector('.spinner-border');
+          if (spinner) spinner.remove();
+          
+          // Clear existing options
+          concreteDeliveryField.innerHTML = '<option value="">Select concrete delivery</option>';
+          
+          // Add new options
+          data.forEach(delivery => {
+            const option = document.createElement('option');
+            option.value = delivery.id;
+            option.textContent = `${delivery.invoice_number} - ${delivery.grade} - ${delivery.quantity}m³ - ₹${delivery.balance} due`;
+            option.dataset.balance = delivery.balance;
+            concreteDeliveryField.appendChild(option);
+          });
+          
+          if (data.length === 0) {
+            const option = document.createElement('option');
+            option.disabled = true;
+            option.textContent = 'No concrete deliveries with outstanding balance';
+            concreteDeliveryField.appendChild(option);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching concrete deliveries:', error);
+          // Remove loading indicator on error
+          const spinner = label.querySelector('.spinner-border');
+          if (spinner) spinner.remove();
+        });
+    }
+    
+    // Initial setup - hide one of the delivery fields based on selected type
+    function toggleDeliveryFields() {
+      const deliveryType = deliveryTypeField.value;
+      
+      if (deliveryType === 'regular') {
+        regularDeliveryFieldDiv.style.display = 'block';
+        concreteDeliveryFieldDiv.style.display = 'none';
+        concreteDeliveryField.value = '';
+        updateRegularDeliveryOptions();
+      } else if (deliveryType === 'concrete') {
+        regularDeliveryFieldDiv.style.display = 'none';
+        concreteDeliveryFieldDiv.style.display = 'block';
+        deliveryField.value = '';
+        updateConcreteDeliveryOptions();
+      } else {
+        // No delivery type selected, hide both fields
+        regularDeliveryFieldDiv.style.display = 'none';
+        concreteDeliveryFieldDiv.style.display = 'none';
+        deliveryField.value = '';
+        concreteDeliveryField.value = '';
+      }
+      
+      // Hide any delivery info displays
+      document.querySelectorAll('#delivery_info_display').forEach(el => {
+        el.style.display = 'none';
+      });
+    }
+    
+    // Function to toggle due date field visibility
+    function toggleDueDateField() {
+      if (paymentModeField.value.toLowerCase() === 'credit') {
+        dueDateField.style.display = 'block';
+      } else {
+        dueDateField.style.display = 'none';
+      }
+    }
+    
+    // Function to update delivery information display
+    function updateDeliveryInfo(deliveryId, isConcreteDelivery = false) {
+      if (!deliveryId) {
+        document.querySelectorAll('#delivery_info_display').forEach(el => {
+          el.style.display = 'none';
+        });
+        return;
+      }
+      
+      // Determine which API endpoint to use
+      const apiUrl = isConcreteDelivery 
+        ? `/customers/api/concrete-deliveries/?customer=${customerField.value}`
+        : `/customers/api/deliveries/?customer=${customerField.value}`;
+      
+      fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+          // Find the selected delivery
+          const selectedDelivery = data.find(d => d.id == deliveryId);
+          
+          if (selectedDelivery) {
+            const info = isConcreteDelivery
+              ? `<div><strong>Invoice:</strong> ${selectedDelivery.invoice_number}</div>
+                 <div><strong>Grade:</strong> ${selectedDelivery.grade}</div>
+                 <div><strong>Quantity:</strong> ${selectedDelivery.quantity} m³</div>
+                 <div><strong>Site:</strong> ${selectedDelivery.site_location}</div>
+                 <div><strong>Total:</strong> ₹${selectedDelivery.total_amount}</div>
+                 <div><strong>Received:</strong> ₹${selectedDelivery.received_amount}</div>
+                 <div><strong>Balance:</strong> <span class="text-danger">₹${selectedDelivery.balance}</span></div>`
+              : `<div><strong>Invoice:</strong> ${selectedDelivery.invoice_number}</div>
+                 <div><strong>Date:</strong> ${selectedDelivery.date}</div>
+                 <div><strong>Total:</strong> ₹${selectedDelivery.total_amount}</div>
+                 <div><strong>Received:</strong> ₹${selectedDelivery.received_amount}</div>
+                 <div><strong>Balance:</strong> <span class="text-danger">₹${selectedDelivery.balance}</span></div>`;
+            
+            // Find the appropriate display div
+            const displayDiv = isConcreteDelivery 
+              ? concreteDeliveryField.parentNode.querySelector('#delivery_info_display')
+              : deliveryField.parentNode.querySelector('#delivery_info_display');
+              
+            if (displayDiv) {
+              displayDiv.innerHTML = info;
+              displayDiv.style.display = 'block';
+            }
+            
+            // Set the payment amount equal to the balance by default
+            amountField.value = selectedDelivery.balance;
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching delivery info:', error);
+          document.querySelectorAll('#delivery_info_display').forEach(el => {
+            el.style.display = 'none';
+          });
+        });
+    }
+    
+    // Initialize fields
+    toggleDeliveryFields();
+    toggleDueDateField();
+    
+    // Event listeners
+    customerField.addEventListener('change', function() {
+      // Reset delivery fields when customer changes
+      deliveryField.value = '';
+      concreteDeliveryField.value = '';
+      document.querySelectorAll('#delivery_info_display').forEach(el => {
+        el.style.display = 'none';
+      });
+      
+      // Update delivery options based on selected type
+      if (deliveryTypeField.value === 'regular') {
+        updateRegularDeliveryOptions();
+      } else if (deliveryTypeField.value === 'concrete') {
+        updateConcreteDeliveryOptions();
+      }
+    });
+    
+    deliveryTypeField.addEventListener('change', toggleDeliveryFields);
+    
+    paymentModeField.addEventListener('change', toggleDueDateField);
+    
+    deliveryField.addEventListener('change', function() {
+      updateDeliveryInfo(this.value, false);
+    });
+    
+    concreteDeliveryField.addEventListener('change', function() {
+      updateDeliveryInfo(this.value, true);
+    });
+    
+    // Add validation to prevent payments exceeding due amount
+    amountField.addEventListener('input', function() {
+      let selectedOption;
+      let dueAmount = 0;
+      
+      if (deliveryTypeField.value === 'regular' && deliveryField.value) {
+        selectedOption = deliveryField.options[deliveryField.selectedIndex];
+        dueAmount = selectedOption.dataset.balance ? parseFloat(selectedOption.dataset.balance) : 0;
+      } else if (deliveryTypeField.value === 'concrete' && concreteDeliveryField.value) {
+        selectedOption = concreteDeliveryField.options[concreteDeliveryField.selectedIndex];
+        dueAmount = selectedOption.dataset.balance ? parseFloat(selectedOption.dataset.balance) : 0;
+      }
+      
+      if (dueAmount > 0) {
+        const currentAmount = parseFloat(this.value);
+        
+        if (currentAmount > dueAmount) {
+          this.setCustomValidity(`Payment cannot exceed the due amount of ₹${dueAmount.toFixed(2)}`);
+        } else {
+          this.setCustomValidity('');
+        }
+        
+        this.reportValidity();
+      } else {
+        this.setCustomValidity('');
+      }
+    });
+    
+    // If customer and delivery are already selected (e.g., in edit mode)
+    if (customerField.value) {
+      if (deliveryField.value) {
+        updateDeliveryInfo(deliveryField.value, false);
+      }
+      if (concreteDeliveryField.value) {
+        updateDeliveryInfo(concreteDeliveryField.value, true);
+      }
+    }
+  });
+</script>
+{% endblock %}
+
+{% endblock %} 

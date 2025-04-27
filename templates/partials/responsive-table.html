@@ -1,0 +1,32 @@
+{% comment %}
+    Responsive Table Partial
+    
+    Usage:
+    {% include 'partials/responsive-table.html' with 
+        headers="Column 1|Column 2|Column 3"
+        table_id="myTable"
+        table_class="table-striped"
+    %}
+{% endcomment %}
+
+<div class="table-responsive">
+    <table id="{{ table_id|default:'dataTable' }}" class="table {{ table_class|default:'table-hover' }} table-responsive-stack">
+        <thead>
+            <tr>
+                {% for header in headers.split|default:'' %}
+                <th>{{ header }}</th>
+                {% endfor %}
+                {% block table_headers %}{% endblock %}
+            </tr>
+        </thead>
+        <tbody>
+            {% block table_body %}
+            <!-- Table content goes here -->
+            {% endblock %}
+        </tbody>
+    </table>
+</div>
+
+{% block table_pagination %}
+<!-- Pagination can be included here -->
+{% endblock %} 

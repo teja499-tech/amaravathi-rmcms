@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Mix Ratio{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">{% if form.instance.pk %}Edit{% else %}Add{% endif %} Mix Ratio</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'customers:mix_ratio_list' %}">Mix Ratios</a></li>
+        <li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}Add{% endif %} Mix Ratio</li>
+    </ol>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-layer-group me-1"></i>
+                    Mix Ratio Details
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Grade Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.grade.id_for_label }}" class="form-label">Concrete Grade*</label>
+                            <select name="{{ form.grade.name }}" id="{{ form.grade.id_for_label }}" 
+                                   class="form-select {% if form.grade.errors %}is-invalid{% endif %}" required>
+                                <option value="">Select Grade</option>
+                                {% for value, label in form.fields.grade.choices %}
+                                    {% if value %}
+                                        <option value="{{ value }}" {% if form.grade.value == value %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            {% if form.grade.errors %}
+                                <div class="invalid-feedback">{{ form.grade.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Select concrete grade for this mix ratio</div>
+                        </div>
+                        
+                        <!-- Material Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.material.id_for_label }}" class="form-label">Material*</label>
+                            <select name="{{ form.material.name }}" id="{{ form.material.id_for_label }}" 
+                                   class="form-select {% if form.material.errors %}is-invalid{% endif %}" required>
+                                <option value="">Select Material</option>
+                                {% for choice in form.material.field.queryset %}
+                                    <option value="{{ choice.id }}" {% if form.material.value|stringformat:"i" == choice.id|stringformat:"i" %}selected{% endif %}>
+                                        {{ choice.name }} ({{ choice.unit }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.material.errors %}
+                                <div class="invalid-feedback">{{ form.material.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Quantity per m³ Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.qty_per_m3.id_for_label }}" class="form-label">Quantity per m³*</label>
+                            <input type="number" step="0.01" min="0.01" name="{{ form.qty_per_m3.name }}" 
+                                   id="{{ form.qty_per_m3.id_for_label }}" value="{{ form.qty_per_m3.value|default:'' }}" 
+                                   class="form-control {% if form.qty_per_m3.errors %}is-invalid{% endif %}" required>
+                            {% if form.qty_per_m3.errors %}
+                                <div class="invalid-feedback">{{ form.qty_per_m3.errors }}</div>
+                            {% endif %}
+                            <div class="form-text">Amount of this material needed for 1 cubic meter of concrete</div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Save Mix Ratio
+                            </button>
+                            <a href="{% url 'customers:mix_ratio_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Information
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">Mix Ratio Guidelines</h5>
+                        <p>Define the amount of each material needed for 1 cubic meter of concrete.</p>
+                        <hr>
+                        <p class="mb-0">Example: For M20 concrete, you might need 350 kg of cement, 700 kg of sand, etc.</p>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h5 class="alert-heading">Important</h5>
+                        <p>These ratios will be used to automatically deduct materials from inventory when concrete deliveries are created.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

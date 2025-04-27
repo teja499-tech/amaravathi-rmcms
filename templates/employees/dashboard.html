@@ -1,0 +1,825 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Employee Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-stat {
+        text-align: center;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .card-stat h3 {
+        font-size: 1.8rem;
+        margin-bottom: 0.25rem;
+    }
+    .card-stat p {
+        margin-bottom: 0;
+        opacity: 0.8;
+    }
+    .month-selector {
+        margin-bottom: 1.5rem;
+    }
+    .month-selector .form-control {
+        width: auto;
+        display: inline-block;
+    }
+</style>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.month-selector {
+  margin-bottom: 1.5rem;
+}
+.month-selector .form-control {
+  width: auto;
+  display: inline-block;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-3">
+                <i class="bi bi-people text-primary me-2"></i>Employee Dashboard
+            </h2>
+            <p class="text-muted">Manage employees and monitor salary payments</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="{% url 'employees:employee_create' %}" class="btn btn-primary">
+                    <i class="bi bi-person-plus me-2"></i>Add Employee
+                </a>
+                <a href="{% url 'employees:salary_record_create' %}" class="btn btn-success">
+                    <i class="bi bi-cash me-2"></i>Add Salary Record
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Month Selector -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <form method="get" id="month-selector-form" class="row g-2 align-items-center">
+                        <div class="col-md-8">
+                            <label for="selected_month" class="form-label">Select Month</label>
+                            <input type="month" id="selected_month" name="month" class="form-control" 
+                                value="{{ selected_month|date:'Y-m' }}" required>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-filter me-2"></i>Apply
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <!-- Employee Count Card -->
+        <div class="col-md-3">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-muted mb-1">Total Employees</h6>
+                            <h2 class="mb-0">{{ total_employees }}</h2>
+                            <p class="text-success mb-0">
+                                {{ active_employees }} Active
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-people fs-1 text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Monthly Salary Card -->
+        <div class="col-md-3">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-muted mb-1">{{ selected_month|date:"F Y" }} Salaries</h6>
+                            <h2 class="mb-0">₹{{ selected_month_total|floatformat:0 }}</h2>
+                            <div class="progress mt-2" style="height: 8px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ payment_percentage }}%"></div>
+                            </div>
+                            <p class="text-success mt-1 mb-0">
+                                ₹{{ selected_month_paid|floatformat:0 }} Paid ({{ payment_percentage|floatformat:0 }}%)
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-cash-stack fs-1 text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pending Payment Card -->
+        <div class="col-md-3">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-muted mb-1">Pending Payments</h6>
+                            <h2 class="mb-0">₹{{ selected_month_pending|floatformat:0 }}</h2>
+                            <p class="text-primary mb-0">
+                                {{ selected_month|date:"F Y" }}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-hourglass-split fs-1 text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Overdue Card -->
+        <div class="col-md-3">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-muted mb-1">Overdue Payments</h6>
+                            <h2 class="mb-0">₹{{ overdue_amount|floatformat:0 }}</h2>
+                            <p class="text-danger mb-0">
+                                {{ overdue_records.count }} Records
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-exclamation-triangle fs-1 text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="bi bi-graph-up text-success me-2"></i>Financial Dashboard
+                <small class="text-muted">{{ selected_month|date:"F Y" }}</small>
+            </h4>
+        </div>
+    </div>
+
+    <!-- Expense Summary Cards -->
+    <div class="row mb-4">
+        <!-- Total Expenses Card -->
+        <div class="col-md-3">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-muted mb-1">Total Expenses</h6>
+                            <h2 class="mb-0">₹{{ total_month_expenses|floatformat:0 }}</h2>
+                            <p class="text-primary mb-0">
+                                {{ selected_month|date:"F Y" }}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-currency-exchange fs-1 text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Salary Expenses Card -->
+        <div class="col-md-3">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-muted mb-1">Salary Expenses</h6>
+                            <h2 class="mb-0">₹{{ salary_expenses|floatformat:0 }}</h2>
+                            <p class="text-primary mb-0">
+                                {% if total_month_expenses > 0 %}
+                                {{ salary_percentage }}% of total expenses
+                                {% else %}
+                                0% of total expenses
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-people fs-1 text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Fuel Expenses Card -->
+        <div class="col-md-3">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-muted mb-1">Fuel Expenses</h6>
+                            <h2 class="mb-0">₹{{ fuel_expenses|floatformat:0 }}</h2>
+                            <p class="text-primary mb-0">
+                                {% if total_month_expenses > 0 %}
+                                {{ fuel_percentage }}% of total expenses
+                                {% else %}
+                                0% of total expenses
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-fuel-pump fs-1 text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Maintenance Expenses Card -->
+        <div class="col-md-3">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-muted mb-1">Maintenance</h6>
+                            <h2 class="mb-0">₹{{ maintenance_expenses|floatformat:0 }}</h2>
+                            <p class="text-primary mb-0">
+                                {% if total_month_expenses > 0 %}
+                                {{ maintenance_percentage }}% of total expenses
+                                {% else %}
+                                0% of total expenses
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-tools fs-1 text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Office Expenses Card -->
+        <div class="col-md-3 d-none">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h6 class="text-muted mb-1">Office Expenses</h6>
+                            <h2 class="mb-0">₹{{ office_expenses|floatformat:0 }}</h2>
+                            <p class="text-primary mb-0">
+                                {% if total_month_expenses > 0 %}
+                                {{ office_percentage }}% of total expenses
+                                {% else %}
+                                0% of total expenses
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-building fs-1 text-secondary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Vehicle Expenses</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="vehicleExpensesChart" height="200"></canvas>
+                    {% if not vehicle_expenses or vehicle_expenses|length == 0 %}
+                        <div class="text-center mt-3 text-muted small">
+                            <em>No vehicle expenses recorded for this month. Sample data shown.</em>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Expense By Type Chart -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">Expenses By Type</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="expenseTypeChart" width="400" height="250"></canvas>
+                    {% if not total_month_expenses or total_month_expenses == 0 %}
+                        <div class="text-center mt-3 text-muted small">
+                            <em>No expenses recorded for this month. Sample data shown.</em>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent High-Value Expenses Card -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-info text-white">
+                    <h6 class="m-0 font-weight-bold">Recent High-Value Expenses</h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_expenses %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in recent_expenses %}
+                                <tr>
+                                    <td>{{ expense.date|date:"d M Y" }}</td>
+                                    <td>{{ expense.get_category_display }}</td>
+                                    <td>{{ expense.get_expense_type_display }}</td>
+                                    <td class="text-right">₹{{ expense.amount|floatformat:2|intcomma }}</td>
+                                    <td>
+                                        <a href="{% url 'expenses:expense_detail' expense.id %}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center my-3">No recent high-value expenses found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Overdue Payments -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Overdue Payments</h5>
+                    {% if overdue_records %}
+                    <a href="{% url 'employees:salary_record_list' %}?status=overdue" class="btn btn-sm btn-outline-primary">View All</a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if overdue_records %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Month</th>
+                                    <th>Due Date</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in overdue_records|slice:":5" %}
+                                <tr>
+                                    <td>{{ record.employee.name }}</td>
+                                    <td>{{ record.month|date:"M Y" }}</td>
+                                    <td>
+                                        <span class="text-danger">{{ record.due_date|date:"d M Y" }}</span>
+                                    </td>
+                                    <td class="text-end">₹{{ record.amount|floatformat:2 }}</td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            {% if record.pk %}
+                                            <a href="{% url 'employees:mark_as_paid' record.id %}?next={% url 'employees:dashboard' %}" class="btn btn-sm btn-success" title="Mark as Paid">
+                                                <i class="bi bi-check-circle"></i>
+                                            </a>
+                                            <a href="{% url 'employees:salary_record_update' record.id %}" class="btn btn-sm btn-primary" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            {% else %}
+                                            <a href="{% url 'employees:salary_record_create' %}?employee={{ record.employee.id }}" class="btn btn-sm btn-success" title="Create Record">
+                                                <i class="bi bi-plus-circle"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted my-5">No overdue payments</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Upcoming Payments -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Upcoming Payments (Next 7 Days)</h5>
+                    {% if upcoming_records %}
+                    <a href="{% url 'employees:salary_record_list' %}?status=pending" class="btn btn-sm btn-outline-primary">View All</a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if upcoming_records %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Month</th>
+                                    <th>Due Date</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in upcoming_records|slice:":5" %}
+                                <tr>
+                                    <td>{{ record.employee.name }}</td>
+                                    <td>{{ record.month|date:"M Y" }}</td>
+                                    <td>{{ record.due_date|date:"d M Y" }}</td>
+                                    <td class="text-end">₹{{ record.amount|floatformat:2 }}</td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <a href="{% url 'employees:mark_as_paid' record.id %}?next={% url 'employees:dashboard' %}" class="btn btn-sm btn-success" title="Mark as Paid">
+                                                <i class="bi bi-check-circle"></i>
+                                            </a>
+                                            <a href="{% url 'employees:salary_record_update' record.id %}" class="btn btn-sm btn-primary" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted my-5">No upcoming payments in the next 7 days</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Salary Due Summary Table -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-wallet2 text-primary me-2"></i>Salary Due Summary
+                    </h5>
+                    <a href="{% url 'employees:salary_record_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if salary_by_employee %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Role</th>
+                                    <th>Due Records</th>
+                                    <th class="text-end">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in salary_by_employee %}
+                                <tr>
+                                    <td>{{ item.employee__name }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ item.employee__role }}</span>
+                                    </td>
+                                    <td>{{ item.record_count }}</td>
+                                    <td class="text-end fw-bold">₹{{ item.total_pending|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-light">
+                                    <td colspan="3" class="text-end fw-bold">Total:</td>
+                                    <td class="text-end fw-bold">₹{{ selected_month_pending|add:overdue_amount|floatformat:2 }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted my-5">No pending salary payments</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Recent Payments</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_payments %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Month</th>
+                                    <th>Payment Date</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in recent_payments %}
+                                <tr>
+                                    <td>{{ record.employee.name }}</td>
+                                    <td>{{ record.month|date:"M Y" }}</td>
+                                    <td>{{ record.payment_date|date:"d M Y" }}</td>
+                                    <td class="text-end">₹{{ record.amount|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted my-5">No recent payments</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upcoming Salary Dues -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bell text-warning me-2"></i>Upcoming Salary Dues
+                    </h5>
+                    <span class="badge bg-info">Based on Employee Settings</span>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_dues %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Role</th>
+                                    <th>Payment Cycle</th>
+                                    <th>Due Date</th>
+                                    <th class="text-end">Expected Amount</th>
+                                    <th>Days Until Due</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for due in upcoming_dues %}
+                                <tr>
+                                    <td>{{ due.employee.name }}</td>
+                                    <td>{{ due.employee.get_role_display }}</td>
+                                    <td>
+                                        <span class="badge {% if due.employee.payment_cycle == 'monthly' %}bg-primary{% else %}bg-info{% endif %}">
+                                            {{ due.employee.get_payment_cycle_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ due.due_date|date:"d M Y" }}</td>
+                                    <td class="text-end">₹{{ due.expected_amount|floatformat:2 }}</td>
+                                    <td>
+                                        {% if due.days_until_due == 0 %}
+                                            <span class="badge bg-danger">Due Today</span>
+                                        {% else %}
+                                            <span class="badge {% if due.days_until_due <= 3 %}bg-warning{% else %}bg-success{% endif %}">
+                                                {{ due.days_until_due }} days
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'employees:salary_record_create' %}?employee={{ due.employee.id }}" 
+                                           class="btn btn-sm btn-success">
+                                            <i class="bi bi-plus-circle me-1"></i>Create Record
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted my-5">No upcoming salary dues requiring attention</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="{% url 'employees:employee_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-people me-2 text-primary"></i>
+                                View All Employees
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                        <a href="{% url 'employees:salary_record_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-cash-coin me-2 text-success"></i>
+                                View All Salary Records
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                        <a href="{% url 'employees:employee_create' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-person-plus me-2 text-info"></i>
+                                Add New Employee
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                        <a href="{% url 'employees:salary_record_create' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-receipt me-2 text-warning"></i>
+                                Create Salary Record
+                            </div>
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Vehicle Expenses Chart
+  var vehicleCtx = document.getElementById('vehicleExpensesChart');
+  if (vehicleCtx) {
+    var ctx = vehicleCtx.getContext('2d');
+    
+    {% if vehicle_expenses and vehicle_expenses|length > 0 %}
+    // Use actual data
+    var vehicleNames = [{% for vehicle in vehicle_expenses %}"{{ vehicle.vehicle_name }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
+    var vehicleAmounts = [{% for vehicle in vehicle_expenses %}{{ vehicle.amount }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    {% else %}
+    // Use sample data if no actual data exists
+    var vehicleNames = ["AP1019", "AP1212", "AP2506"];
+    var vehicleAmounts = [15000, 12500, 8500];
+    {% endif %}
+    
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: vehicleNames,
+        datasets: [{
+          label: 'Amount (₹)',
+          data: vehicleAmounts,
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return '₹' + value.toLocaleString('en-IN');
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // Expense Type Chart
+  var expenseTypeCtx = document.getElementById('expenseTypeChart');
+  if (expenseTypeCtx) {
+    var ctx = expenseTypeCtx.getContext('2d');
+    
+    {% if total_month_expenses > 0 %}
+    // Create arrays with only the expense types that have values
+    var expenseData = [];
+    
+    {% if salary_percentage > 0 %}
+    expenseData.push({
+        type: 'Salary',
+        percentage: {{ salary_percentage|floatformat:1 }},
+        color: 'rgba(255, 99, 132, 0.7)'
+    });
+    {% endif %}
+    
+    {% if fuel_percentage > 0 %}
+    expenseData.push({
+        type: 'Fuel',
+        percentage: {{ fuel_percentage|floatformat:1 }},
+        color: 'rgba(54, 162, 235, 0.7)'
+    });
+    {% endif %}
+    
+    {% if maintenance_percentage > 0 %}
+    expenseData.push({
+        type: 'Maintenance',
+        percentage: {{ maintenance_percentage|floatformat:1 }},
+        color: 'rgba(255, 206, 86, 0.7)'
+    });
+    {% endif %}
+    
+    {% if office_percentage > 0 %}
+    expenseData.push({
+        type: 'Office',
+        percentage: {{ office_percentage|floatformat:1 }},
+        color: 'rgba(75, 192, 192, 0.7)'
+    });
+    {% endif %}
+    {% else %}
+    // Use sample data if no actual data exists
+    var expenseData = [
+      { type: 'Salary', percentage: 45.5, color: 'rgba(255, 99, 132, 0.7)' },
+      { type: 'Fuel', percentage: 25.2, color: 'rgba(54, 162, 235, 0.7)' },
+      { type: 'Maintenance', percentage: 17.8, color: 'rgba(255, 206, 86, 0.7)' },
+      { type: 'Office', percentage: 11.5, color: 'rgba(75, 192, 192, 0.7)' }
+    ];
+    {% endif %}
+    
+    // Extract arrays for Chart.js
+    var expenseTypes = expenseData.map(function(item) { return item.type; });
+    var percentages = expenseData.map(function(item) { return item.percentage; });
+    var backgroundColors = expenseData.map(function(item) { return item.color; });
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: expenseTypes,
+            datasets: [{
+                data: percentages,
+                backgroundColor: backgroundColors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            var label = context.label || '';
+                            var value = context.raw || 0;
+                            var totalExpenses = {{ total_month_expenses|default:157000 }};
+                            var amount = (value / 100) * totalExpenses;
+                            return label + ': ' + value + '% (₹' + amount.toLocaleString('en-IN', {maximumFractionDigits: 0}) + ')';
+                        }
+                    }
+                }
+            }
+        }
+    });
+  }
+});
+</script>
+{% endblock %} 

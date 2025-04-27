@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.id %}Edit Expense{% else %}New Expense{% endif %}{% endblock %}
+
+{% block extra_css %}
+<!-- Tempus Dominus Date/Time Picker CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tempus-dominus@6.4.4/dist/css/tempus-dominus.min.css">
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'expenses:expense_list' %}">Expenses</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        {% if form.instance.id %}Edit Expense{% else %}New Expense{% endif %}
+                    </li>
+                </ol>
+            </nav>
+            <h2 class="mb-3">
+                <i class="bi bi-receipt text-primary me-2"></i>
+                {% if form.instance.id %}Edit Expense{% else %}New Expense{% endif %}
+            </h2>
+        </div>
+    </div>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h5 class="mb-0">Expense Information</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="row mb-3">
+                    <!-- Basic Information Section -->
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0">Basic Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="{{ form.category.id_for_label }}" class="form-label">Category *</label>
+                                    {{ form.category }}
+                                    {% if form.category.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.category.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.expense_type.id_for_label }}" class="form-label">Expense Type *</label>
+                                    {{ form.expense_type }}
+                                    {% if form.expense_type.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.expense_type.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.amount.id_for_label }}" class="form-label">Amount (₹) *</label>
+                                    {{ form.amount }}
+                                    {% if form.amount.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.amount.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.date.id_for_label }}" class="form-label">Date *</label>
+                                    <div class="input-group" id="datepicker">
+                                        {{ form.date }}
+                                        <span class="input-group-text">
+                                            <i class="bi bi-calendar"></i>
+                                        </span>
+                                    </div>
+                                    {% if form.date.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.date.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.payment_method.id_for_label }}" class="form-label">Payment Method *</label>
+                                    {{ form.payment_method }}
+                                    {% if form.payment_method.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.payment_method.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Additional Information Section -->
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h6 class="mb-0">Additional Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="{{ form.reference_number.id_for_label }}" class="form-label">Reference/Invoice Number</label>
+                                    {{ form.reference_number }}
+                                    {% if form.reference_number.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.reference_number.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.vehicle.id_for_label }}" class="form-label">Related Vehicle</label>
+                                    {{ form.vehicle }}
+                                    {% if form.vehicle.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.vehicle.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">Select if this expense is related to a specific vehicle</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.material.id_for_label }}" class="form-label">Related Material</label>
+                                    {{ form.material }}
+                                    {% if form.material.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.material.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">Select if this expense is for purchasing a specific material</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.associated_delivery.id_for_label }}" class="form-label">Associated Delivery</label>
+                                    {{ form.associated_delivery }}
+                                    {% if form.associated_delivery.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.associated_delivery.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">Select if this expense is associated with a specific delivery</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <!-- Description Section -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Description</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                                    {{ form.description }}
+                                    {% if form.description.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.description.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Tags feature temporarily disabled
+                                <div class="mb-3">
+                                    <label for="{{ form.tags.id_for_label }}" class="form-label">Tags</label>
+                                    {{ form.tags }}
+                                    {% if form.tags.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.tags.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">Add tags to categorize this expense (e.g., diesel, repair, spares)</div>
+                                </div>
+                                -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Receipt Section -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Receipt</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="{{ form.receipt.id_for_label }}" class="form-label">Receipt</label>
+                                    {% if form.instance.receipt %}
+                                    <div class="mb-3">
+                                        <p>Current receipt: <a href="{{ form.instance.receipt.url }}" target="_blank">View receipt</a></p>
+                                        {% with receipt_url=form.instance.receipt.url|lower %}
+                                            {% if ".jpg" in receipt_url or ".jpeg" in receipt_url or ".png" in receipt_url or ".gif" in receipt_url %}
+                                            <img src="{{ form.instance.receipt.url }}" alt="Receipt" class="img-fluid mb-3" style="max-height: 200px;">
+                                            {% endif %}
+                                        {% endwith %}
+                                    </div>
+                                    {% endif %}
+                                    {{ form.receipt }}
+                                    {% if form.receipt.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.receipt.errors %}
+                                        {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">Upload a photo or scan of the receipt (if available)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary me-2">
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i>Save Expense
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Tempus Dominus Date/Time Picker JS -->
+<script src="https://cdn.jsdelivr.net/npm/tempus-dominus@6.4.4/dist/js/tempus-dominus.min.js"></script>
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 on all select elements
+        $('select').select2({
+            theme: 'bootstrap-5'
+        });
+        
+        // Initialize date picker
+        new tempusDominus.TempusDominus(document.getElementById('datepicker'), {
+            display: {
+                viewMode: 'calendar',
+                components: {
+                    clock: false
+                }
+            }
+        });
+        
+        // Category-based expense type setting
+        const categoryData = {};
+        {% for category in form.category.field.queryset %}
+        categoryData["{{ category.id }}"] = "{{ category.default_type }}";
+        {% endfor %}
+        
+        // Event handler for category change
+        $('#id_category').on('change', function() {
+            const categoryId = $(this).val();
+            if (categoryId && categoryData[categoryId]) {
+                $('#id_expense_type').val(categoryData[categoryId]).trigger('change');
+            }
+        });
+        
+        // Show/hide fields based on expense type
+        function toggleRelatedFields() {
+            const expenseType = $('#id_expense_type').val();
+            
+            // Hide all related fields first
+            $('[data-expense-type]').each(function() {
+                $(this).closest('.mb-3').hide();
+            });
+            
+            // Show fields related to the selected expense type
+            $('[data-expense-type]').each(function() {
+                const types = $(this).data('expense-type').split(',');
+                if (types.includes(expenseType)) {
+                    $(this).closest('.mb-3').show();
+                }
+            });
+        }
+        
+        // Call on page load and when expense type changes
+        toggleRelatedFields();
+        $('#id_expense_type').on('change', toggleRelatedFields);
+    });
+</script>
+{% endblock %} 

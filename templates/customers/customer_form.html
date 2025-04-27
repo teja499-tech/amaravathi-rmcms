@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Customer | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{% if form.instance.pk %}Edit{% else %}Add{% endif %} Customer</h1>
+        <a href="{% url 'customers:customer_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Customers
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Customer Information</h6>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="id_name" class="form-label">Name*</label>
+                    <input type="text" name="name" class="form-control {% if form.name.errors %}is-invalid{% endif %}" 
+                           id="id_name" value="{{ form.name.value|default:'' }}" required>
+                    {% if form.name.errors %}
+                        <div class="invalid-feedback">{{ form.name.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="id_phone" class="form-label">Phone*</label>
+                    <input type="text" name="phone" class="form-control {% if form.phone.errors %}is-invalid{% endif %}" 
+                           id="id_phone" value="{{ form.phone.value|default:'' }}" required>
+                    {% if form.phone.errors %}
+                        <div class="invalid-feedback">{{ form.phone.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="id_email" class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
+                           id="id_email" value="{{ form.email.value|default:'' }}">
+                    {% if form.email.errors %}
+                        <div class="invalid-feedback">{{ form.email.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="id_address" class="form-label">Address</label>
+                    <textarea name="address" class="form-control {% if form.address.errors %}is-invalid{% endif %}" 
+                              id="id_address" rows="3">{{ form.address.value|default:'' }}</textarea>
+                    {% if form.address.errors %}
+                        <div class="invalid-feedback">{{ form.address.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="id_gst_number" class="form-label">GST Number</label>
+                    <input type="text" name="gst_number" class="form-control {% if form.gst_number.errors %}is-invalid{% endif %}" 
+                           id="id_gst_number" value="{{ form.gst_number.value|default:'' }}" placeholder="e.g. 27AAPFU0939F1ZV">
+                    {% if form.gst_number.errors %}
+                        <div class="invalid-feedback">{{ form.gst_number.errors }}</div>
+                    {% endif %}
+                    <div class="form-text">Enter the 15-digit GST Registration Number (if applicable)</div>
+                </div>
+                
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="is_active" class="form-check-input" id="id_is_active" 
+                           {% if form.is_active.value %}checked{% endif %}>
+                    <label class="form-check-label" for="id_is_active">Active</label>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i>Save Customer
+                    </button>
+                    <a href="{% url 'customers:customer_list' %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

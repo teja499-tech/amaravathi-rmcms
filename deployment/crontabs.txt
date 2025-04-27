@@ -1,0 +1,13 @@
+# Recommended Crontab settings for AmaravathiRMCMS
+# Copy these settings to your server's crontab (crontab -e)
+
+# Run the commitment update command every day at 6 AM to check for due commitments
+# This will update the commitment status and create ledger entries for commitments due today
+0 6 * * * cd /path/to/AmaravathiRMCMS && /path/to/venv/bin/python manage.py update_commitments --update-ledger
+
+# Run auto-update for commitments at the end of each month
+# This will process any missed commitments and prepare for the next month
+0 0 1 * * cd /path/to/AmaravathiRMCMS && /path/to/venv/bin/python manage.py update_commitments --auto-update
+
+# Make sure to adjust the paths based on your server configuration
+# Format: minute hour day-of-month month day-of-week command-to-execute 

@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load customer_extras %}
+
+{% block title %}Delivery Detail - {{ delivery.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">Delivery Details</h1>
+            <p class="text-muted">Invoice #{{ delivery.invoice_number }}</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="{% url 'customers:delivery_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to List
+                </a>
+                <a href="{% url 'customers:delivery_update' delivery.id %}" class="btn btn-warning">
+                    <i class="bi bi-pencil me-1"></i> Edit
+                </a>
+                <a href="{% url 'customers:payment_create' %}?delivery={{ delivery.id }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Add Payment
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Delivery Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th style="width: 35%">Customer:</th>
+                            <td>
+                                <a href="{% url 'customers:customer_detail' delivery.customer.id %}">
+                                    {{ delivery.customer.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Invoice Number:</th>
+                            <td>{{ delivery.invoice_number }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date:</th>
+                            <td>{{ delivery.date }}</td>
+                        </tr>
+                        <tr>
+                            <th>Total Amount:</th>
+                            <td>₹{{ delivery.total_amount }}</td>
+                        </tr>
+                        <tr>
+                            <th>Received Amount:</th>
+                            <td>₹{{ delivery.received_amount }}</td>
+                        </tr>
+                        <tr>
+                            <th>Balance:</th>
+                            <td>
+                                {% with calculated_balance=delivery.total_amount|sub:delivery.received_amount %}
+                                <span class="{% if calculated_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    ₹{{ calculated_balance }}
+                                </span>
+                                {% endwith %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Payment Due Date:</th>
+                            <td>
+                                {% if delivery.due_date %}
+                                    {{ delivery.due_date }}
+                                    {% if delivery.due_date < today %}
+                                        <span class="badge bg-danger ms-1">Overdue</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">Not specified</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if delivery.notes %}
+                        <tr>
+                            <th>Notes:</th>
+                            <td>{{ delivery.notes }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Payment History</h5>
+                    <span class="badge bg-primary">{{ payments|length }} Payments</span>
+                </div>
+                <div class="card-body p-0">
+                    {% if payments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Mode</th>
+                                    <th>Due Date</th>
+                                    <th>Reference</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in payments %}
+                                <tr>
+                                    <td>{{ payment.payment_date }}</td>
+                                    <td>₹{{ payment.amount_paid }}</td>
+                                    <td>{{ payment.payment_mode }}</td>
+                                    <td>
+                                        {% if payment.payment_mode.lower == 'credit' and payment.due_date %}
+                                            {{ payment.due_date }}
+                                            {% if payment.due_date < today %}
+                                                <span class="badge bg-danger ms-1">Overdue</span>
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ payment.reference_number|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center">
+                        <p class="mb-3">No payments recorded for this delivery.</p>
+                        <a href="{% url 'customers:payment_create' %}?delivery={{ delivery.id }}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Record Payment
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

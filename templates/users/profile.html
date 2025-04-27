@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Your Profile{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">User Profile</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}" class="img-fluid rounded-circle mb-3" style="max-width: 150px;">
+                    {% else %}
+                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;">
+                            <i class="bi bi-person" style="font-size: 4rem;"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <h4 class="card-title">{{ user.full_name|default:user.username }}</h4>
+                    <p class="card-text text-muted">@{{ user.username }}</p>
+                    <div class="badge bg-info mb-3">{{ user.get_role_display }}</div>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Username:</span>
+                        <span class="text-muted">{{ user.username }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Full Name:</span>
+                        <span class="text-muted">{{ user.full_name|default:"-" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Email:</span>
+                        <span class="text-muted">{{ user.email|default:"-" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Phone:</span>
+                        <span class="text-muted">{{ user.phone_number|default:"-" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Joined:</span>
+                        <span class="text-muted">{{ user.date_joined|date:"M d, Y" }}</span>
+                    </li>
+                </ul>
+                <div class="card-footer">
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-primary flex-grow-1">Edit Profile</a>
+                        <a href="{% url 'users:change_password' %}" class="btn btn-outline-secondary flex-grow-1">Change Password</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Role and Permissions</h5>
+                </div>
+                <div class="card-body">
+                    <h5>Your role: <span class="badge bg-info">{{ user.get_role_display }}</span></h5>
+                    
+                    <div class="mt-4">
+                        <h6>What you can do:</h6>
+                        
+                        {% if user.role == 'ADMIN' %}
+                            <ul class="list-group mt-2">
+                                <li class="list-group-item list-group-item-success">Manage all users and their roles</li>
+                                <li class="list-group-item list-group-item-success">Full access to all financial data</li>
+                                <li class="list-group-item list-group-item-success">Manage suppliers and purchases</li>
+                                <li class="list-group-item list-group-item-success">Manage customers and deliveries</li>
+                                <li class="list-group-item list-group-item-success">Manage expenses and salaries</li>
+                                <li class="list-group-item list-group-item-success">View all reports and analytics</li>
+                            </ul>
+                        {% elif user.role == 'ACCOUNTANT' %}
+                            <ul class="list-group mt-2">
+                                <li class="list-group-item list-group-item-success">Manage financial data</li>
+                                <li class="list-group-item list-group-item-success">Manage suppliers and purchases</li>
+                                <li class="list-group-item list-group-item-success">Manage customers and deliveries</li>
+                                <li class="list-group-item list-group-item-success">Manage expenses and salaries</li>
+                                <li class="list-group-item list-group-item-success">View financial reports</li>
+                                <li class="list-group-item list-group-item-danger">Cannot manage users or system settings</li>
+                            </ul>
+                        {% elif user.role == 'VIEWER' %}
+                            <ul class="list-group mt-2">
+                                <li class="list-group-item list-group-item-success">View suppliers and purchases</li>
+                                <li class="list-group-item list-group-item-success">View customers and deliveries</li>
+                                <li class="list-group-item list-group-item-success">View expenses summary</li>
+                                <li class="list-group-item list-group-item-success">View basic reports</li>
+                                <li class="list-group-item list-group-item-danger">Cannot create or modify any data</li>
+                                <li class="list-group-item list-group-item-danger">Cannot access detailed financial information</li>
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

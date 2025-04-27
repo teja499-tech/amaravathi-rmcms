@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            line-height: 1.4;
+        }
+        .container {
+            width: 100%;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .report-info {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .report-info div {
+            width: 48%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            text-align: left;
+            padding: 8px;
+            font-weight: bold;
+        }
+        td {
+            padding: 8px;
+        }
+        .date-header {
+            background-color: #eef1f5;
+            font-weight: bold;
+        }
+        .currency {
+            text-align: right;
+        }
+        .balance {
+            font-weight: bold;
+            text-align: right;
+        }
+        .report-totals {
+            font-weight: bold;
+            background-color: #eef1f5;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+        }
+        .footer p {
+            margin: 3px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ title }}</h1>
+        </div>
+        
+        <div class="report-info">
+            <div>
+                <p><strong>Period:</strong> {{ start_date|date:"d-m-Y" }} to {{ end_date|date:"d-m-Y" }}</p>
+            </div>
+            <div style="text-align: right;">
+                <p><strong>Generated On:</strong> {{ current_date|date:"d-m-Y" }}</p>
+            </div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th width="15%">Date</th>
+                    <th width="30%">Description</th>
+                    <th width="15%">Reference</th>
+                    <th width="13%">Receipts (₹)</th>
+                    <th width="13%">Payments (₹)</th>
+                    <th width="14%">Balance (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Opening Balance Row -->
+                <tr>
+                    <td>{{ start_date|date:"d-m-Y" }}</td>
+                    <td>Opening Balance</td>
+                    <td></td>
+                    <td class="currency"></td>
+                    <td class="currency"></td>
+                    <td class="balance">{{ opening_balance|floatformat:2 }}</td>
+                </tr>
+                
+                {% if day_wise_entries %}
+                    {% with running_balance=opening_balance %}
+                    {% for date_str, day_data in day_wise_entries %}
+                        {% with running_balance=running_balance|add:day_data.net_flow %}
+                        <!-- Day Header with Totals -->
+                        <tr class="date-header">
+                            <td>{{ day_data.date|date:"d-m-Y" }}</td>
+                            <td>Daily Total</td>
+                            <td></td>
+                            <td class="currency">{{ day_data.total_receipts|floatformat:2 }}</td>
+                            <td class="currency">{{ day_data.total_payments|floatformat:2 }}</td>
+                            <td class="balance">{{ running_balance|floatformat:2 }}</td>
+                        </tr>
+                        
+                        <!-- Individual Transactions -->
+                        {% for transaction in day_data.transactions %}
+                        <tr>
+                            <td>{{ transaction.date|date:"d-m-Y" }}</td>
+                            <td>{{ transaction.description }}</td>
+                            <td>{{ transaction.reference }}</td>
+                            <td class="currency">
+                                {% if transaction.receipt_amount > 0 %}
+                                {{ transaction.receipt_amount|floatformat:2 }}
+                                {% endif %}
+                            </td>
+                            <td class="currency">
+                                {% if transaction.payment_amount > 0 %}
+                                {{ transaction.payment_amount|floatformat:2 }}
+                                {% endif %}
+                            </td>
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                        {% endwith %}
+                    {% endfor %}
+                    {% endwith %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center;">No transactions found for the selected period.</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Grand Total -->
+                <tr class="report-totals">
+                    <td colspan="3">Grand Total</td>
+                    <td class="currency">{{ total_receipts|floatformat:2 }}</td>
+                    <td class="currency">{{ total_payments|floatformat:2 }}</td>
+                    <td class="balance">{{ closing_balance|floatformat:2 }}</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="footer">
+            <p>Amaravathi Ready Mix Concrete</p>
+            <p>Generated on {{ current_date|date:"d-m-Y H:i:s" }}</p>
+        </div>
+    </div>
+</body>
+</html> 

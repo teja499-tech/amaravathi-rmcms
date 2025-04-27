@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{% block title %}Expense Detail{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'expenses:expense_list' %}">Expenses</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ expense.category.name }}</li>
+                </ol>
+            </nav>
+            <h2 class="mb-3">
+                <i class="bi bi-receipt text-primary me-2"></i>Expense Detail
+            </h2>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="{% url 'expenses:expense_update' expense.id %}" class="btn btn-primary">
+                    <i class="bi bi-pencil me-2"></i>Edit
+                </a>
+                <a href="{% url 'expenses:expense_delete' expense.id %}" class="btn btn-danger">
+                    <i class="bi bi-trash me-2"></i>Delete
+                </a>
+                <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to List
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Main Information Card -->
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Expense Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Category</label>
+                                <div class="fw-bold">{{ expense.category.name }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Expense Type</label>
+                                <div>
+                                    <span class="badge 
+                                        {% if expense.expense_type == 'vehicle' %}bg-info
+                                        {% elif expense.expense_type == 'fuel' %}bg-warning
+                                        {% elif expense.expense_type == 'maintenance' %}bg-danger
+                                        {% elif expense.expense_type == 'office' %}bg-primary
+                                        {% elif expense.expense_type == 'materials' %}bg-success
+                                        {% elif expense.expense_type == 'utilities' %}bg-secondary
+                                        {% elif expense.expense_type == 'rent' %}bg-dark
+                                        {% elif expense.expense_type == 'salary' %}bg-primary
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ expense.get_expense_type_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Amount</label>
+                                <div class="fw-bold fs-4">₹{{ expense.amount|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Date</label>
+                                <div class="fw-bold">{{ expense.date|date:"d M Y" }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Payment Method</label>
+                                <div>
+                                    <span class="badge 
+                                        {% if expense.payment_method == 'cash' %}bg-success
+                                        {% elif expense.payment_method == 'bank_transfer' %}bg-primary
+                                        {% elif expense.payment_method == 'credit_card' %}bg-warning
+                                        {% elif expense.payment_method == 'upi' %}bg-info
+                                        {% elif expense.payment_method == 'cheque' %}bg-secondary
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ expense.get_payment_method_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Reference Number</label>
+                                <div>{{ expense.reference_number|default:"--" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-muted">Description</label>
+                        <div>{{ expense.description|default:"--"|linebreaks }}</div>
+                    </div>
+                    
+                    {% if expense.vehicle %}
+                    <div class="mb-4">
+                        <label class="form-label text-muted">Related Vehicle</label>
+                        <div>
+                            <a href="{% url 'expenses:vehicle_detail' expense.vehicle.id %}" class="d-flex align-items-center">
+                                <i class="bi bi-truck me-2"></i>
+                                {{ expense.vehicle.name }} ({{ expense.vehicle.registration_number }})
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if expense.material %}
+                    <div class="mb-4">
+                        <label class="form-label text-muted">Related Material</label>
+                        <div>
+                            <a href="#" class="d-flex align-items-center">
+                                <i class="bi bi-box me-2"></i>
+                                {{ expense.material.name }}
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if expense.associated_delivery %}
+                    <div class="mb-4">
+                        <label class="form-label text-muted">Associated Delivery</label>
+                        <div>
+                            <a href="#" class="d-flex align-items-center">
+                                <i class="bi bi-truck me-2"></i>
+                                Delivery #{{ expense.associated_delivery.invoice_number }}
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if expense.tags.all %}
+                    <div class="mb-4">
+                        <label class="form-label text-muted">Tags</label>
+                        <div>
+                            {% for tag in expense.tags.all %}
+                            <span class="badge bg-secondary me-1">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar/Meta Information -->
+        <div class="col-md-4">
+            <!-- Bill Card - Show bill from Supabase if exists -->
+            {% if expense.bill_url %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Expense Bill</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% with bill_url_lower=expense.bill_url|lower %}
+                    {% if ".pdf" in bill_url_lower %}
+                    <div class="document-preview mb-3">
+                        <i class="bi bi-file-earmark-pdf fs-1 text-danger"></i>
+                        <p>PDF Document</p>
+                    </div>
+                    {% elif ".jpg" in bill_url_lower or ".jpeg" in bill_url_lower or ".png" in bill_url_lower or ".gif" in bill_url_lower %}
+                    <img src="{{ expense.bill_url }}" alt="Bill" class="img-fluid mb-3" style="max-height: 300px;">
+                    {% else %}
+                    <div class="document-preview mb-3">
+                        <i class="bi bi-file-earmark fs-1 text-primary"></i>
+                        <p>Document</p>
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    <div>
+                        <a href="{{ expense.bill_url }}" class="btn btn-primary" target="_blank">
+                            <i class="bi bi-file-earmark me-2"></i>View Bill
+                        </a>
+                        <a href="{{ expense.bill_url }}" class="btn btn-secondary" download>
+                            <i class="bi bi-download me-2"></i>Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Receipt Card - From Django FileField if exists -->
+            {% if expense.receipt %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Receipt</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% with receipt_url_lower=expense.receipt.url|lower %}
+                    {% if ".jpg" in receipt_url_lower or ".jpeg" in receipt_url_lower or ".png" in receipt_url_lower or ".gif" in receipt_url_lower %}
+                    <img src="{{ expense.receipt.url }}" alt="Receipt" class="img-fluid mb-3" style="max-height: 300px;">
+                    {% endif %}
+                    {% endwith %}
+                    <div>
+                        <a href="{{ expense.receipt.url }}" class="btn btn-primary" target="_blank">
+                            <i class="bi bi-file-earmark me-2"></i>View Full Receipt
+                        </a>
+                        <a href="{{ expense.receipt.url }}" class="btn btn-secondary" download>
+                            <i class="bi bi-download me-2"></i>Download
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Meta Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Meta Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Created At</label>
+                        <div>{{ expense.created_at|date:"d M Y, h:i A" }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Last Modified</label>
+                        <div>{{ expense.updated_at|date:"d M Y, h:i A" }}</div>
+                    </div>
+                    {% if expense.updated_by %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Last Modified By</label>
+                        <div>{{ expense.updated_by.get_full_name|default:expense.updated_by.username }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

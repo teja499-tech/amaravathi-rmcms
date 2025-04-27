@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance %}Edit Delivery{% else %}Add Delivery{% endif %} | Amaravathi RMC{% endblock %}
+
+{% block extra_css %}
+<style>
+  .concrete-fields {
+    display: none;
+  }
+  .form-control:focus, .form-select:focus, .form-check-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.25rem rgba(63, 81, 181, 0.25);
+  }
+  .required-field::after {
+    content: ' *';
+    color: var(--danger);
+  }
+  .material-info {
+    background-color: #f8f9fa;
+    border-left: 4px solid var(--primary);
+    padding: 15px;
+    margin-top: 20px;
+  }
+  .delivery-type-container {
+    background-color: #f0f7ff;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    border: 1px solid #d0e3ff;
+  }
+  .type-label {
+    margin-right: 20px;
+    cursor: pointer;
+    padding: 8px 15px;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .form-check-input:checked + .type-label {
+    background-color: var(--primary);
+    color: white;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{% if form.instance %}Edit Delivery{% else %}Add Delivery{% endif %}</h1>
+        <a href="{% url 'customers:delivery_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Deliveries
+        </a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Delivery Information</h6>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Delivery Type Selection -->
+                <div class="delivery-type-container mb-4">
+                    <label class="form-label mb-3"><strong>Delivery Type</strong></label>
+                    <div class="delivery-type-options d-flex">
+                        {% for value, text in form.fields.delivery_type.choices %}
+                        <div class="form-check form-check-inline">
+                            <input type="radio" name="delivery_type" id="id_delivery_type_{{ value }}" 
+                                   value="{{ value }}" class="form-check-input" 
+                                   {% if form.delivery_type.value == value %}checked{% endif %}
+                                   {% if not form.instance and value == 'regular' %}checked{% endif %}>
+                            <label for="id_delivery_type_{{ value }}" class="type-label">{{ text }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if form.delivery_type.errors %}
+                    <div class="invalid-feedback d-block">{{ form.delivery_type.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Common Fields -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="id_customer" class="form-label required-field">Customer</label>
+                        {{ form.customer }}
+                        {% if form.customer.errors %}
+                            <div class="invalid-feedback d-block">{{ form.customer.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="id_invoice_number" class="form-label required-field">Invoice Number</label>
+                        {{ form.invoice_number }}
+                        {% if form.invoice_number.errors %}
+                            <div class="invalid-feedback d-block">{{ form.invoice_number.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="id_date" class="form-label required-field">Delivery Date</label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                            <div class="invalid-feedback d-block">{{ form.date.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="id_due_date" class="form-label">Payment Due Date</label>
+                        {{ form.due_date }}
+                        <div class="form-text">The date by which payment is expected</div>
+                        {% if form.due_date.errors %}
+                            <div class="invalid-feedback d-block">{{ form.due_date.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="id_total_amount" class="form-label required-field">Total Amount</label>
+                        {{ form.total_amount }}
+                        {% if form.total_amount.errors %}
+                            <div class="invalid-feedback d-block">{{ form.total_amount.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="id_received_amount" class="form-label">Received Amount</label>
+                        {{ form.received_amount }}
+                        {% if form.received_amount.errors %}
+                            <div class="invalid-feedback d-block">{{ form.received_amount.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Concrete Delivery Specific Fields -->
+                <div class="concrete-fields">
+                    <h5 class="mt-4 mb-3">Concrete Delivery Details</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="id_grade" class="form-label required-field">Concrete Grade</label>
+                            {{ form.grade }}
+                            {% if form.grade.errors %}
+                                <div class="invalid-feedback d-block">{{ form.grade.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="id_quantity" class="form-label required-field">Quantity (m³)</label>
+                            {{ form.quantity }}
+                            <div class="form-text">Enter quantity in cubic meters</div>
+                            {% if form.quantity.errors %}
+                                <div class="invalid-feedback d-block">{{ form.quantity.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="id_site_location" class="form-label required-field">Site Location</label>
+                            {{ form.site_location }}
+                            {% if form.site_location.errors %}
+                                <div class="invalid-feedback d-block">{{ form.site_location.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_delivery_note_file" class="form-label">Delivery Note</label>
+                            {{ form.delivery_note_file }}
+                            <div class="form-text">Upload delivery note document (PDF or image)</div>
+                            {% if form.delivery_note_file.errors %}
+                                <div class="invalid-feedback d-block">{{ form.delivery_note_file.errors }}</div>
+                            {% endif %}
+                            
+                            {% if instance and instance.delivery_note_url %}
+                            <div class="mt-2">
+                                <a href="{{ instance.delivery_note_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-file-earmark me-1"></i> View Current Delivery Note
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                {{ form.inventory_deducted }}
+                                <label class="form-check-label" for="id_inventory_deducted">
+                                    Skip inventory validation (use with caution)
+                                </label>
+                            </div>
+                            {% if form.inventory_deducted.errors %}
+                                <div class="invalid-feedback d-block">{{ form.inventory_deducted.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="material-info">
+                        <h6><i class="bi bi-info-circle me-2"></i>Material Requirements</h6>
+                        <p class="mb-0">When you create a concrete delivery, materials will be automatically deducted from inventory based on the mix ratio for the selected grade.</p>
+                    </div>
+                </div>
+                
+                <!-- Notes Field (Common) -->
+                <div class="mb-3 mt-4">
+                    <label for="id_notes" class="form-label">Notes</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <div class="invalid-feedback d-block">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i>Save Delivery
+                    </button>
+                    <a href="{% url 'customers:delivery_list' %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get elements
+    const deliveryTypeInputs = document.querySelectorAll('input[name="delivery_type"]');
+    const concreteFields = document.querySelector('.concrete-fields');
+    
+    // Function to toggle concrete fields visibility
+    function toggleConcreteFields() {
+        const selectedType = document.querySelector('input[name="delivery_type"]:checked').value;
+        if (selectedType === 'concrete') {
+            concreteFields.style.display = 'block';
+        } else {
+            concreteFields.style.display = 'none';
+        }
+    }
+    
+    // Add event listeners
+    deliveryTypeInputs.forEach(input => {
+        input.addEventListener('change', toggleConcreteFields);
+    });
+    
+    // Initialize fields visibility on page load
+    toggleConcreteFields();
+    
+    // Grade and quantity change listeners for material requirements
+    const gradeSelect = document.getElementById('id_grade');
+    const quantityInput = document.getElementById('id_quantity');
+    
+    function updateMaterialRequirements() {
+        // This function can be expanded to show material requirements
+        // based on selected grade and quantity
+        const grade = gradeSelect.value;
+        const quantity = parseFloat(quantityInput.value) || 0;
+        
+        if (grade && quantity > 0) {
+            // Show material requirements (this would be implemented with AJAX)
+            console.log(`Grade: ${grade}, Quantity: ${quantity}m³`);
+        }
+    }
+    
+    if (gradeSelect && quantityInput) {
+        gradeSelect.addEventListener('change', updateMaterialRequirements);
+        quantityInput.addEventListener('input', updateMaterialRequirements);
+    }
+});
+</script>
+{% endblock %} 

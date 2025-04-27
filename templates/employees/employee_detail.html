@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ employee.name }} - Employee Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-3">
+                <i class="bi bi-person text-primary me-2"></i>{{ employee.name }}
+            </h2>
+            <p class="text-muted">{{ employee.get_role_display }} 
+                <span class="badge {% if employee.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                    {% if employee.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+            </p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="{% url 'employees:employee_update' employee.id %}" class="btn btn-primary">
+                    <i class="bi bi-pencil me-2"></i>Edit Employee
+                </a>
+                <a href="{% url 'employees:employee_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to List
+                </a>
+                <a href="{% url 'employees:salary_record_create' %}?employee={{ employee.id }}" class="btn btn-success">
+                    <i class="bi bi-plus-circle me-2"></i>Add Salary Record
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Employee Details -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Personal Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tbody>
+                            <tr>
+                                <td><strong>Name:</strong></td>
+                                <td>{{ employee.name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phone:</strong></td>
+                                <td>{{ employee.phone }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Role:</strong></td>
+                                <td>{{ employee.get_role_display }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Join Date:</strong></td>
+                                <td>{{ employee.join_date|date:"d M Y" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Status:</strong></td>
+                                <td>
+                                    <span class="badge {% if employee.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                        {% if employee.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Salary Information -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Salary Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tbody>
+                            <tr>
+                                <td><strong>Salary Amount:</strong></td>
+                                <td class="text-success fw-bold">₹{{ employee.salary_amount|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Payment Cycle:</strong></td>
+                                <td>
+                                    <span class="badge {% if employee.payment_cycle == 'monthly' %}bg-primary{% else %}bg-info{% endif %}">
+                                        {{ employee.get_payment_cycle_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Due Day:</strong></td>
+                                <td>{% if employee.payment_cycle == 'monthly' %}
+                                    {{ employee.salary_due_day }}<sup>th</sup> of every month
+                                    {% else %}
+                                    Weekly (every 7 days)
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Paid:</strong></td>
+                                <td>₹{{ total_paid_amount|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Pending Amount:</strong></td>
+                                <td class="{% if pending_amount > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    ₹{{ pending_amount|floatformat:2 }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistics Card -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-4">
+                        <div class="col-6">
+                            <div class="bg-light rounded p-3">
+                                <h3 class="mb-1">{{ paid_records_count }}</h3>
+                                <p class="text-muted mb-0">Paid Records</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-light rounded p-3">
+                                <h3 class="mb-1 {% if overdue_records_count > 0 %}text-danger{% endif %}">
+                                    {{ overdue_records_count }}
+                                </h3>
+                                <p class="text-muted mb-0">Overdue</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'employees:salary_record_create' %}?employee={{ employee.id }}" class="btn btn-success">
+                            <i class="bi bi-plus-circle me-2"></i>Add Salary Record
+                        </a>
+                        {% if not employee.is_active %}
+                        <form method="post" action="{% url 'employees:employee_update' employee.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="is_active" value="True">
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="bi bi-person-check me-2"></i>Reactivate Employee
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Salary Records -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Salary Records</h5>
+                    <a href="{% url 'employees:salary_record_create' %}?employee={{ employee.id }}" class="btn btn-sm btn-success">
+                        <i class="bi bi-plus-circle me-2"></i>Add Record
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if salary_records %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Due Date</th>
+                                    <th class="text-center">Status</th>
+                                    <th>Payment Date</th>
+                                    <th class="text-end">Amount</th>
+                                    <th>Remarks</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in salary_records %}
+                                <tr class="{% if record.is_overdue %}table-danger{% elif record.is_paid %}table-success{% endif %}">
+                                    <td>{{ record.month|date:"M Y" }}</td>
+                                    <td>{{ record.due_date|date:"d M Y" }}</td>
+                                    <td class="text-center">
+                                        {% if record.is_paid %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% elif record.is_overdue %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.payment_date %}
+                                        {{ record.payment_date|date:"d M Y" }}
+                                        {% else %}
+                                        --
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">₹{{ record.amount|floatformat:2 }}</td>
+                                    <td>
+                                        <small>{{ record.remarks|default:"--" }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            {% if not record.is_paid %}
+                                            <a href="{% url 'employees:mark_as_paid' record.id %}?next={% url 'employees:employee_detail' employee.id %}" 
+                                               class="btn btn-sm btn-success" title="Mark as Paid">
+                                                <i class="bi bi-check-circle"></i>
+                                            </a>
+                                            {% endif %}
+                                            <a href="{% url 'employees:salary_record_update' record.id %}" class="btn btn-sm btn-primary" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'employees:salary_record_detail' record.id %}" class="btn btn-sm btn-info" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted my-5">No salary records found for this employee</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,374 @@
+{% extends 'base.html' %}
+
+{% block title %}Ledger - {{ supplier.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap5.min.css">
+<style>
+    .table-container {
+        overflow-x: auto;
+    }
+    .text-overdue {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .badge-lg {
+        font-size: 90%;
+        padding: 0.5em 0.8em;
+    }
+    .filter-card {
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .summary-card {
+        transition: all 0.3s;
+    }
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Supplier Ledger</h1>
+            <p class="text-muted">{{ supplier.name }} - Detailed Transaction History</p>
+        </div>
+        <div>
+            <a href="{% url 'suppliers:supplier_detail' supplier.id %}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left me-1"></i> Back to Supplier
+            </a>
+            <a href="{% url 'suppliers:payment_create_for_supplier' supplier.id %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Record Payment
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card summary-card bg-light">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Purchases</h6>
+                    <h2 class="display-6">₹{{ total_purchased|floatformat:2 }}</h2>
+                    <p class="mb-0 text-muted">{{ purchases|length }} purchase orders</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card summary-card bg-light">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Paid</h6>
+                    <h2 class="display-6">₹{{ total_paid|floatformat:2 }}</h2>
+                    <p class="mb-0 text-muted">{{ payments|length }} payment transactions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card summary-card {% if balance > 0 %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+                <div class="card-body">
+                    <h6 class="{% if balance > 0 %}text-white-50{% else %}text-white-50{% endif %}">Outstanding Balance</h6>
+                    <h2 class="display-6">₹{{ balance|floatformat:2 }}</h2>
+                    <p class="mb-0 {% if balance > 0 %}text-white-50{% else %}text-white-50{% endif %}">
+                        {% if balance > 0 %}
+                            Due to supplier
+                        {% else %}
+                            Advance paid
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="card filter-card mb-4">
+        <div class="card-body">
+            <form method="get" id="ledger-filter-form">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="date_from" class="form-label">Date From</label>
+                        <input type="date" class="form-control" id="date_from" name="date_from" value="{{ request.GET.date_from|default:'' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_to" class="form-label">Date To</label>
+                        <input type="date" class="form-control" id="date_to" name="date_to" value="{{ request.GET.date_to|default:'' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="show_type" class="form-label">Show</label>
+                        <select class="form-select" id="show_type" name="show_type">
+                            <option value="all" {% if request.GET.show_type == 'all' or not request.GET.show_type %}selected{% endif %}>All Transactions</option>
+                            <option value="purchases" {% if request.GET.show_type == 'purchases' %}selected{% endif %}>Purchases Only</option>
+                            <option value="payments" {% if request.GET.show_type == 'payments' %}selected{% endif %}>Payments Only</option>
+                            <option value="unpaid" {% if request.GET.show_type == 'unpaid' %}selected{% endif %}>Unpaid Purchases</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-filter me-1"></i> Apply Filters
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Purchases Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Purchase History</h5>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary" id="exportPurchasesBtn">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Export
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-container">
+                <table class="table table-hover table-striped mb-0" id="purchases-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Invoice #</th>
+                            <th>Total Amount</th>
+                            <th>Paid Amount</th>
+                            <th>Balance</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for purchase in purchases %}
+                        <tr>
+                            <td>{{ purchase.date }}</td>
+                            <td>
+                                <a href="{% url 'suppliers:purchase_detail' purchase.id %}">
+                                    {{ purchase.invoice_number }}
+                                </a>
+                            </td>
+                            <td>₹{{ purchase.total_amount|floatformat:2 }}</td>
+                            <td>₹{{ purchase.paid_amount|floatformat:2 }}</td>
+                            <td>₹{{ purchase.balance|floatformat:2 }}</td>
+                            <td>
+                                {% if purchase.payment_status == 'Paid' %}
+                                    <span class="badge bg-success">Paid</span>
+                                {% elif purchase.payment_status == 'Partial' %}
+                                    <span class="badge bg-warning text-dark">Partial</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'suppliers:purchase_detail' purchase.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'suppliers:payment_create_for_purchase' purchase.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-cash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">No purchases found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-dark">
+                        <tr>
+                            <th colspan="2">Total</th>
+                            <th>₹{{ total_purchased|floatformat:2 }}</th>
+                            <th>₹{{ total_paid|floatformat:2 }}</th>
+                            <th>₹{{ balance|floatformat:2 }}</th>
+                            <th colspan="2"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payments Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Payment History</h5>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary" id="exportPaymentsBtn">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Export
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-container">
+                <table class="table table-hover table-striped mb-0" id="payments-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Purchase Order</th>
+                            <th>Payment Mode</th>
+                            <th>Reference</th>
+                            <th>Amount Paid</th>
+                            <th>Due Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ payment.payment_date }}</td>
+                            <td>
+                                {% if payment.purchase_order %}
+                                <a href="{% url 'suppliers:purchase_detail' payment.purchase_order.id %}">
+                                    {{ payment.purchase_order.invoice_number }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">General Payment</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ payment.get_payment_mode_display }}</td>
+                            <td>{{ payment.reference_number|default:"-" }}</td>
+                            <td>₹{{ payment.amount_paid|floatformat:2 }}</td>
+                            <td>
+                                {% if payment.payment_mode == 'CREDIT' and payment.due_date %}
+                                    {% if payment.due_date < today %}
+                                        <span class="text-overdue">{{ payment.due_date }} (Overdue)</span>
+                                    {% else %}
+                                        {{ payment.due_date }}
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{% url 'suppliers:payment_update' payment.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">No payments found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-dark">
+                        <tr>
+                            <th colspan="4">Total</th>
+                            <th>₹{{ total_paid|floatformat:2 }}</th>
+                            <th colspan="2"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Initialize DataTables
+        const purchasesTable = $('#purchases-table').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'excel',
+                    text: 'Export to Excel',
+                    title: 'Purchases - {{ supplier.name }} - {{ today|date:"Y-m-d" }}',
+                    className: 'd-none',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    text: 'Export to PDF',
+                    title: 'Purchases - {{ supplier.name }} - {{ today|date:"Y-m-d" }}',
+                    className: 'd-none',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    }
+                }
+            ],
+            paging: false,
+            searching: false,
+            info: false,
+            columnDefs: [
+                { orderable: false, targets: [6] }
+            ]
+        });
+        
+        const paymentsTable = $('#payments-table').DataTable({
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'excel',
+                    text: 'Export to Excel',
+                    title: 'Payments - {{ supplier.name }} - {{ today|date:"Y-m-d" }}',
+                    className: 'd-none',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    }
+                },
+                {
+                    extend: 'pdf',
+                    text: 'Export to PDF',
+                    title: 'Payments - {{ supplier.name }} - {{ today|date:"Y-m-d" }}',
+                    className: 'd-none',
+                    exportOptions: {
+                        columns: [0, 1, 2, 3, 4, 5]
+                    }
+                }
+            ],
+            paging: false,
+            searching: false,
+            info: false,
+            columnDefs: [
+                { orderable: false, targets: [6] }
+            ]
+        });
+        
+        // Custom export buttons for more control
+        $('#exportPurchasesBtn').on('click', function() {
+            const exportType = confirm('Export to Excel? Click OK for Excel, Cancel for PDF') ? 'excel' : 'pdf';
+            purchasesTable.button(`.buttons-${exportType}`).trigger();
+        });
+        
+        $('#exportPaymentsBtn').on('click', function() {
+            const exportType = confirm('Export to Excel? Click OK for Excel, Cancel for PDF') ? 'excel' : 'pdf';
+            paymentsTable.button(`.buttons-${exportType}`).trigger();
+        });
+        
+        // Show/hide tables based on filter
+        const showType = $('#show_type').val();
+        if (showType === 'purchases') {
+            $('#payments-table').closest('.card').hide();
+        } else if (showType === 'payments') {
+            $('#purchases-table').closest('.card').hide();
+        }
+        
+        // Add filter change handler to automatically submit form
+        $('#show_type').on('change', function() {
+            $('#ledger-filter-form').submit();
+        });
+    });
+</script>
+{% endblock %} 

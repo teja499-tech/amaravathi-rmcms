@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Delete Payment{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Confirm Delete Payment</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <strong>Warning!</strong> You are about to delete the payment of 
+                        <strong>₹{{ object.amount_paid }}</strong> made to 
+                        <strong>{{ object.supplier.name }}</strong> on 
+                        <strong>{{ object.payment_date }}</strong>.
+                        {% if object.purchase_order %}
+                        <p class="mt-2 mb-0">
+                            This payment is linked to purchase order <strong>{{ object.purchase_order.invoice_number }}</strong>.
+                            Deleting this payment will update the paid amount for this purchase.
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h5>Payment Details:</h5>
+                        <table class="table table-bordered">
+                            <tr>
+                                <th style="width: 30%;">Amount Paid</th>
+                                <td>₹{{ object.amount_paid }}</td>
+                            </tr>
+                            <tr>
+                                <th>Supplier</th>
+                                <td>{{ object.supplier.name }}</td>
+                            </tr>
+                            {% if object.purchase_order %}
+                            <tr>
+                                <th>Purchase Order</th>
+                                <td>{{ object.purchase_order.invoice_number }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th>Payment Date</th>
+                                <td>{{ object.payment_date }}</td>
+                            </tr>
+                            <tr>
+                                <th>Payment Mode</th>
+                                <td>{{ object.payment_mode }}</td>
+                            </tr>
+                            {% if object.reference_number %}
+                            <tr>
+                                <th>Reference No.</th>
+                                <td>{{ object.reference_number }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if object.remarks %}
+                            <tr>
+                                <th>Remarks</th>
+                                <td>{{ object.remarks }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                    
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            {% if object.purchase_order %}
+                                <a href="{% url 'suppliers:purchase_detail' object.purchase_order.id %}" class="btn btn-secondary">Cancel</a>
+                            {% else %}
+                                <a href="{% url 'suppliers:payment_list' %}" class="btn btn-secondary">Cancel</a>
+                            {% endif %}
+                            <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+
+{% block title %}Vehicle: {{ vehicle.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'expenses:vehicle_list' %}">Vehicles</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ vehicle.name }}</li>
+                </ol>
+            </nav>
+            <h2 class="mb-3">
+                <i class="bi bi-truck text-primary me-2"></i>{{ vehicle.name }}
+                <span class="badge {% if vehicle.is_active %}bg-success{% else %}bg-secondary{% endif %} align-middle" style="font-size: 0.5em;">
+                    {% if vehicle.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+            </h2>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="{% url 'expenses:vehicle_update' vehicle.id %}" class="btn btn-primary">
+                    <i class="bi bi-pencil me-2"></i>Edit
+                </a>
+                <a href="{% url 'expenses:vehicle_delete' vehicle.id %}" class="btn btn-danger">
+                    <i class="bi bi-trash me-2"></i>Delete
+                </a>
+                <a href="{% url 'expenses:expense_create' %}?vehicle={{ vehicle.id }}" class="btn btn-success">
+                    <i class="bi bi-plus-circle me-2"></i>Add Expense
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Vehicle Details -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Vehicle Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Registration Number</label>
+                        <div class="fw-bold">{{ vehicle.registration_number }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Vehicle Type</label>
+                        <div>{{ vehicle.get_vehicle_type_display }}</div>
+                    </div>
+                    {% if vehicle.make or vehicle.model %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Make/Model</label>
+                        <div>{{ vehicle.make|default:"" }} {{ vehicle.model|default:"" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if vehicle.year %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Year</label>
+                        <div>{{ vehicle.year }}</div>
+                    </div>
+                    {% endif %}
+                    {% if vehicle.purchase_date %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Purchase Date</label>
+                        <div>{{ vehicle.purchase_date|date:"d M Y" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if vehicle.insurance_expiry %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Insurance Expiry</label>
+                        <div class="d-flex align-items-center">
+                            {{ vehicle.insurance_expiry|date:"d M Y" }}
+                            {% if vehicle.days_to_insurance_expiry <= 0 %}
+                            <span class="badge bg-danger ms-2">Expired</span>
+                            {% elif vehicle.insurance_expiring_soon %}
+                            <span class="badge bg-warning ms-2">Expires in {{ vehicle.days_to_insurance_expiry }} days</span>
+                            {% else %}
+                            <span class="badge bg-success ms-2">Valid</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if vehicle.notes %}
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Notes</label>
+                        <div>{{ vehicle.notes|linebreaks }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Expense Summary -->
+        <div class="col-md-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Expense Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted mb-2">Total Expenses</h6>
+                                    <h3 class="mb-0">₹{{ total_expenses|floatformat:2 }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if expense_by_type %}
+                        <div class="col-md-8 mb-4">
+                            <h6 class="text-muted mb-3">Expenses by Type</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th class="text-center">Count</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for expense_type in expense_by_type %}
+                                        <tr>
+                                            <td>
+                                                {% for choice in expense.EXPENSE_TYPE_CHOICES %}
+                                                    {% if choice.0 == expense_type.expense_type %}
+                                                        {{ choice.1 }}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </td>
+                                            <td class="text-center">{{ expense_type.count }}</td>
+                                            <td class="text-end">₹{{ expense_type.total|floatformat:2 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if monthly_expenses %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-muted mb-3">Monthly Expense Trend</h6>
+                            <div class="chart-container" style="height: 200px;">
+                                <!-- You can add a chart here using Chart.js or other charting libraries -->
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Month</th>
+                                                <th class="text-end">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for month in monthly_expenses %}
+                                            <tr>
+                                                <td>{{ month.month }}</td>
+                                                <td class="text-end">₹{{ month.total|floatformat:2 }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Expense List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Expenses</h5>
+            <a href="{% url 'expenses:expense_create' %}?vehicle={{ vehicle.id }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Add Expense
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Payment Method</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.date|date:"d M Y" }}</td>
+                            <td>{{ expense.category.name }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if expense.expense_type == 'vehicle' %}bg-info
+                                    {% elif expense.expense_type == 'fuel' %}bg-warning
+                                    {% elif expense.expense_type == 'maintenance' %}bg-danger
+                                    {% elif expense.expense_type == 'office' %}bg-primary
+                                    {% elif expense.expense_type == 'materials' %}bg-success
+                                    {% elif expense.expense_type == 'utilities' %}bg-secondary
+                                    {% elif expense.expense_type == 'rent' %}bg-dark
+                                    {% elif expense.expense_type == 'salary' %}bg-primary
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ expense.get_expense_type_display }}
+                                </span>
+                            </td>
+                            <td>{{ expense.description|truncatechars:30 }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if expense.payment_method == 'cash' %}bg-success
+                                    {% elif expense.payment_method == 'bank_transfer' %}bg-primary
+                                    {% elif expense.payment_method == 'credit_card' %}bg-warning
+                                    {% elif expense.payment_method == 'upi' %}bg-info
+                                    {% elif expense.payment_method == 'cheque' %}bg-secondary
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ expense.get_payment_method_display }}
+                                </span>
+                            </td>
+                            <td class="text-end">₹{{ expense.amount|floatformat:2 }}</td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <a href="{% url 'expenses:expense_detail' expense.id %}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'expenses:expense_update' expense.id %}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'expenses:expense_delete' expense.id %}" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No expenses found for this vehicle.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+    
+    // If you want to add charts, you can add Chart.js code here
+</script>
+{% endblock %} 

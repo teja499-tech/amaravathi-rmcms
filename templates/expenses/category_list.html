@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Expense Categories{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-3">
+                <i class="bi bi-tags text-primary me-2"></i>Expense Categories
+            </h2>
+            <p class="text-muted">Manage expense categories for better organization and reporting.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'expenses:category_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Add Category
+            </a>
+        </div>
+    </div>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Categories</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Default Type</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th class="text-end">Total Expenses</th>
+                            <th class="text-center">Count</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in categories_with_totals %}
+                        <tr>
+                            <td>{{ item.category.name }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ item.category.get_default_type_display }}</span>
+                            </td>
+                            <td>{{ item.category.description|default:"-"|truncatechars:50 }}</td>
+                            <td>
+                                {% if item.category.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">₹{{ item.total_expense|floatformat:2 }}</td>
+                            <td class="text-center">{{ item.count }}</td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <a href="{% url 'expenses:category_update' item.category.id %}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'expenses:expense_list' %}?category={{ item.category.id }}" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="View Expenses">
+                                        <i class="bi bi-list"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No categories found. Add your first category to get started.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+{% endblock %} 

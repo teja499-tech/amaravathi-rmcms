@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Vehicle{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'expenses:vehicle_list' %}">Vehicles</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'expenses:vehicle_detail' vehicle.id %}">{{ vehicle.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Delete</li>
+                </ol>
+            </nav>
+            <h2 class="mb-3">
+                <i class="bi bi-trash text-danger me-2"></i>Delete Vehicle
+            </h2>
+        </div>
+    </div>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h5 class="mb-0 text-danger">Confirm Deletion</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Warning:</strong> This action cannot be undone. All related expense records will be retained.
+            </div>
+            
+            <p>Are you sure you want to delete the following vehicle?</p>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Vehicle Name</label>
+                                <div class="fw-bold">{{ vehicle.name }}</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Registration Number</label>
+                                <div class="fw-bold">{{ vehicle.registration_number }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Vehicle Type</label>
+                                <div>{{ vehicle.get_vehicle_type_display }}</div>
+                            </div>
+                            {% if vehicle.make or vehicle.model %}
+                            <div class="mb-3">
+                                <label class="form-label text-muted">Make/Model</label>
+                                <div>{{ vehicle.make|default:"" }} {{ vehicle.model|default:"" }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if vehicle.expenses.exists %}
+            <div class="alert alert-warning">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Note:</strong> This vehicle has {{ vehicle.expenses.count }} associated expense records. These records will be retained, but they will no longer be associated with this vehicle.
+            </div>
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-end">
+                    <a href="{% url 'expenses:vehicle_detail' vehicle.id %}" class="btn btn-secondary me-2">
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Delete Vehicle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

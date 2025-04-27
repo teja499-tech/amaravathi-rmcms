@@ -1,0 +1,1295 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+{% load customer_extras %}
+
+{% block title %}Dashboard | Amaravathi RMC{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        transition: transform .2s;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .stats-card .card-body {
+        display: flex;
+        align-items: center;
+    }
+    .stats-card .icon {
+        font-size: 2.5rem;
+        margin-right: 1rem;
+        opacity: 0.8;
+    }
+    .stats-card .stats-details {
+        flex-grow: 1;
+    }
+    .stats-card .stats-title {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        font-weight: bold;
+        color: #666;
+    }
+    .stats-card .stats-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .cashflow-summary-card {
+        border-radius: 10px;
+    }
+    .cashflow-summary-card .value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .cashflow-summary-card .title {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: #666;
+    }
+    .chart-area {
+        height: 350px;
+        position: relative;
+    }
+    .alert-list-card {
+        border-radius: 10px;
+    }
+    .alert-list-card .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid rgba(0,0,0,.125);
+        font-weight: bold;
+    }
+    .alert-list-card .alert-item {
+        padding: 10px 15px;
+        border-bottom: 1px solid rgba(0,0,0,.125);
+    }
+    .alert-list-card .alert-item:last-child {
+        border-bottom: none;
+    }
+    .alert-list-card .alert-item.overdue {
+        background-color: rgba(220, 53, 69, 0.05);
+    }
+    .alert-list-card .alert-title {
+        font-weight: bold;
+        margin-bottom: 2px;
+    }
+    .alert-list-card .alert-subtitle {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    .alert-list-card .alert-amount {
+        font-weight: bold;
+    }
+    .alert-list-card .badge.overdue {
+        background-color: #dc3545;
+    }
+    .alert-list-card .badge.due-today {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    /* Smart Alerts Styles */
+    .smart-alert-card {
+        display: flex;
+        align-items: stretch;
+        padding: 15px;
+        height: 100%;
+        transition: background-color 0.2s;
+    }
+    .smart-alert-card:hover {
+        background-color: rgba(0, 123, 255, 0.03);
+    }
+    .smart-alert-card .alert-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        opacity: 0.8;
+    }
+    .smart-alert-card .alert-content {
+        flex: 1;
+        padding-left: 15px;
+    }
+    .smart-alert-card .alert-content h6 {
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .smart-alert-card .alert-count {
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+    .smart-alert-card .alert-details {
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 0;
+        font-size: 0.9rem;
+    }
+    .smart-alert-card .alert-details li {
+        margin-bottom: 5px;
+    }
+    .border-right {
+        border-right: 1px solid rgba(0,0,0,.125);
+    }
+    @media (max-width: 992px) {
+        .smart-alert-card {
+            border-bottom: 1px solid rgba(0,0,0,.125);
+        }
+        .border-right {
+            border-right: none;
+        }
+    }
+    
+    /* New styles for enhanced dashboard */
+    .due-heatmap {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 5px;
+    }
+    .heatmap-day {
+        aspect-ratio: 1;
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-size: 0.7rem;
+        font-weight: bold;
+        color: white;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .heatmap-day.empty {
+        background-color: #f8f9fa;
+        color: #adb5bd;
+    }
+    .heatmap-day:hover {
+        transform: scale(1.1);
+        z-index: 100;
+    }
+    .cash-inflow {
+        color: #28a745;
+    }
+    .cash-outflow {
+        color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex flex-column flex-md-row align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+        {% if perms.materials.view_material %}
+        <a href="{% url 'materials:smart_summary' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="bi bi-graph-up me-1"></i> Smart Summary
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Statistics Cards Row -->
+    <div class="row">
+        <!-- Customers Card -->
+        {% if perms.customer.view_customer %}
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="icon text-primary">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <div class="stats-details">
+                        <div class="stats-title">Customers</div>
+                        <div class="stats-value">{{ active_customers_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Deliveries Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="icon text-success">
+                        <i class="bi bi-truck"></i>
+                    </div>
+                    <div class="stats-details">
+                        <div class="stats-title">Deliveries</div>
+                        <div class="stats-value">{{ deliveries_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Suppliers Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="icon text-info">
+                        <i class="bi bi-shop"></i>
+                    </div>
+                    <div class="stats-details">
+                        <div class="stats-title">Suppliers</div>
+                        <div class="stats-value">{{ active_suppliers_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expenses Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="icon text-warning">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div class="stats-details">
+                        <div class="stats-title">Expenses</div>
+                        <div class="stats-value">{{ expenses_count|default:"0" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dues Notification Panel -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="bi bi-bell-fill me-2"></i> Today's Dues & Upcoming Payments
+                    </h6>
+                    <button class="btn btn-link p-0 m-0 text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#duesNotificationCollapse" aria-expanded="true" aria-controls="duesNotificationCollapse">
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                </div>
+                <div class="collapse show" id="duesNotificationCollapse">
+                    <div class="card-body p-0">
+                        <div class="row m-0 notification-panel">
+                            <!-- Supplier Dues -->
+                            <div class="col-md-3 p-3 border-end">
+                                <h6 class="text-muted mb-3"><i class="bi bi-shop me-2"></i>Supplier Payments</h6>
+                                {% if supplier_payments_due %}
+                                    <ul class="list-group list-group-flush">
+                                        {% for payment in supplier_payments_due %}
+                                            <li class="list-group-item px-0 py-2 border-0 {% if payment.due_date < today %}alert-danger rounded{% endif %}">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{{ payment.supplier.name }}</strong>
+                                                        <div class="small text-muted">{{ payment.purchase_order.invoice_number|default:"" }}</div>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <span class="fw-bold">₹{{ payment.amount_paid|floatformat:2 }}</span>
+                                                        <div>
+                                                            {% if payment.due_date < today %}
+                                                                <span class="badge bg-danger">Overdue</span>
+                                                            {% elif payment.due_date == today %}
+                                                                <span class="badge bg-warning text-dark">Today</span>
+                                                            {% else %}
+                                                                <span class="badge bg-info">{{ payment.due_date|date:"M d" }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted small">No supplier payments due soon</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Customer Dues -->
+                            <div class="col-md-3 p-3 border-end">
+                                <h6 class="text-muted mb-3"><i class="bi bi-people me-2"></i>Customer Payments</h6>
+                                {% if customer_payments_due %}
+                                    <ul class="list-group list-group-flush">
+                                        {% for delivery in customer_payments_due %}
+                                            <li class="list-group-item px-0 py-2 border-0 {% if delivery.due_date < today %}alert-danger rounded{% endif %}">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{{ delivery.customer.name }}</strong>
+                                                        <div class="small text-muted">{{ delivery.invoice_number|default:"" }}</div>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <span class="fw-bold">₹{{ delivery.total_amount|floatformat:2 }}</span>
+                                                        <span class="text-secondary">/</span>
+                                                        <span class="fw-bold">₹{{ delivery.total_amount|sub:delivery.received_amount|floatformat:2 }}</span>
+                                                        <div>
+                                                            {% if delivery.due_date < today %}
+                                                                <span class="badge bg-danger">Overdue</span>
+                                                            {% elif delivery.due_date == today %}
+                                                                <span class="badge bg-warning text-dark">Today</span>
+                                                            {% else %}
+                                                                <span class="badge bg-info">{{ delivery.due_date|date:"M d" }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted small">No customer payments due soon</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Salary Dues -->
+                            <div class="col-md-3 p-3 border-end">
+                                <h6 class="text-muted mb-3"><i class="bi bi-person-badge me-2"></i>Salary Payments</h6>
+                                {% if salary_payments_due %}
+                                    <ul class="list-group list-group-flush">
+                                        {% for record in salary_payments_due %}
+                                            <li class="list-group-item px-0 py-2 border-0 {% if record.due_date < today %}alert-danger rounded{% endif %}">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{{ record.employee.name }}</strong>
+                                                        <div class="small text-muted">{{ record.month|date:"F Y" }}</div>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <span class="fw-bold">₹{{ record.amount|floatformat:2 }}</span>
+                                                        <div>
+                                                            {% if record.due_date < today %}
+                                                                <span class="badge bg-danger">Overdue</span>
+                                                            {% elif record.due_date == today %}
+                                                                <span class="badge bg-warning text-dark">Today</span>
+                                                            {% else %}
+                                                                <span class="badge bg-info">{{ record.due_date|date:"M d" }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted small">No salary payments due soon</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- EMI/Lease Payments -->
+                            <div class="col-md-3 p-3">
+                                <h6 class="text-muted mb-3"><i class="bi bi-calendar-check me-2"></i>EMI & Lease Payments</h6>
+                                {% if commitment_payments_due %}
+                                    <ul class="list-group list-group-flush">
+                                        {% for commitment in commitment_payments_due %}
+                                            <li class="list-group-item px-0 py-2 border-0 {% if commitment.next_payment_date < today and not commitment.current_payment_is_paid %}alert-danger rounded{% endif %}">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{{ commitment.title }}</strong>
+                                                        <div class="small text-muted">{{ commitment.get_commitment_type_display }}</div>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <span class="fw-bold">₹{{ commitment.amount|floatformat:2 }}</span>
+                                                        <div>
+                                                            {% if commitment.next_payment_date < today and not commitment.current_payment_is_paid %}
+                                                                <span class="badge bg-danger">Overdue</span>
+                                                            {% elif commitment.next_payment_date == today and not commitment.current_payment_is_paid %}
+                                                                <span class="badge bg-warning text-dark">Today</span>
+                                                            {% else %}
+                                                                <span class="badge bg-info">{{ commitment.next_payment_date|date:"M d" }}</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted small">No EMI/lease payments due soon</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary Cards -->
+    <div class="row mb-4">
+        <!-- This Month's Inflow Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="icon text-success">
+                        <i class="bi bi-arrow-down-circle-fill"></i>
+                    </div>
+                    <div class="stats-details">
+                        <div class="stats-title">This Month's Inflow</div>
+                        <div class="stats-value">₹{{ month_summary.total_inflow|intcomma }}</div>
+                        <div class="small text-muted mt-2">
+                            <span class="badge bg-info text-white">
+                                <i class="bi bi-arrow-down"></i> Customer Payments
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- This Month's Outflow Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="icon text-danger">
+                        <i class="bi bi-arrow-up-circle-fill"></i>
+                    </div>
+                    <div class="stats-details">
+                        <div class="stats-title">This Month's Outflow</div>
+                        <div class="stats-value">₹{{ month_summary.total_outflow|intcomma }}</div>
+                        <div class="small text-muted mt-2">
+                            <span class="badge bg-info text-white">
+                                <i class="bi bi-arrow-up"></i> Suppliers: ₹{{ month_summary.supplier_payments|intcomma }}
+                            </span>
+                            <span class="badge bg-info text-white">
+                                <i class="bi bi-person-badge"></i> Salaries: ₹{{ month_summary.salaries|intcomma }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Net Cash Flow Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card {% if month_summary.net_cash_flow >= 0 %}border-left-primary{% else %}border-left-warning{% endif %} shadow h-100 py-2 stats-card">
+                <div class="card-body">
+                    <div class="icon {% if month_summary.net_cash_flow >= 0 %}text-primary{% else %}text-warning{% endif %}">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <div class="stats-details">
+                        <div class="stats-title">Net Cash Flow</div>
+                        <div class="stats-value">
+                            {% if month_summary.net_cash_flow >= 0 %}
+                                <span class="cash-inflow">₹{{ month_summary.net_cash_flow|intcomma }}</span>
+                            {% else %}
+                                <span class="cash-outflow">-₹{{ month_summary.net_cash_flow|floatformat:0|slice:"1:"|intcomma }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="small text-muted mt-2">
+                            <span class="badge {% if month_summary.net_cash_flow >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+                                <i class="bi bi-calculator"></i> Inflow - Outflow
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <!-- Monthly Inflow vs Outflow Chart -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Monthly Inflow vs Outflow</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="bi bi-three-dots-vertical text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">View Options:</div>
+                            <a class="dropdown-item chart-type" data-type="bar" href="#">Bar Chart</a>
+                            <a class="dropdown-item chart-type" data-type="line" href="#">Line Chart</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{% url 'accounts:unified_ledger' %}">View Ledger</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="cashFlowChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dues Heatmap -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Upcoming Dues (30-Day View)</h6>
+                </div>
+                <div class="card-body">
+                    <div class="due-heatmap-container">
+                        <div class="d-flex justify-content-between mb-2">
+                            <div class="small">Sun</div>
+                            <div class="small">Mon</div>
+                            <div class="small">Tue</div>
+                            <div class="small">Wed</div>
+                            <div class="small">Thu</div>
+                            <div class="small">Fri</div>
+                            <div class="small">Sat</div>
+                        </div>
+                        <div id="dueHeatmap" class="due-heatmap"></div>
+                        <div class="mt-3 d-flex justify-content-between">
+                            <div class="small">
+                                <span class="badge bg-success text-white">•</span> Customer Payments
+                            </div>
+                            <div class="small">
+                                <span class="badge bg-danger text-white">•</span> Supplier Payments
+                            </div>
+                            <div class="small">
+                                <span class="badge bg-warning text-dark">•</span> EMIs/Commitments
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary Section -->
+    <div class="row mb-4">
+        <!-- Monthly Summary Cards -->
+        <div class="col-lg-4">
+            <div class="row">
+                <!-- Net Cash Flow Card -->
+                <div class="col-md-12 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2 cashflow-summary-card">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="title mb-1">
+                                        Net Cash Flow This Month
+                                    </div>
+                                    <div class="value {% if month_summary.net_cash_flow >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                                        ₹{{ month_summary.net_cash_flow|intcomma }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-wallet2 {% if month_summary.net_cash_flow >= 0 %}text-primary{% else %}text-danger{% endif %} fs-2"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bank Balance Card -->
+                <div class="col-md-12 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2 cashflow-summary-card">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="title mb-1">
+                                        Current Bank Balance
+                                    </div>
+                                    <div class="value text-success">
+                                        ₹{{ total_bank_balance|intcomma }}
+                                    </div>
+                                    <div class="mt-2">
+                                        {% for account in bank_accounts %}
+                                        <small class="d-block">
+                                            <span class="fw-bold">{{ account.name }}</span>: ₹{{ account.current_balance|intcomma }}
+                                        </small>
+                                        {% empty %}
+                                        <small class="d-block text-muted">No bank accounts found</small>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-bank text-success fs-2"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cash In Hand Card -->
+                <div class="col-md-12 mb-4">
+                    <div class="card border-left-danger shadow h-100 py-2 cashflow-summary-card">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="title mb-1">
+                                        Estimated Cash In Hand
+                                    </div>
+                                    <div class="value {% if estimated_cash_in_hand >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                                        ₹{{ estimated_cash_in_hand|intcomma }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="bi bi-cash {% if estimated_cash_in_hand >= 0 %}text-primary{% else %}text-danger{% endif %} fs-2"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cash Flow Chart -->
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Cash Flow (Last 30 Days)</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="bi bi-three-dots-vertical text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end shadow animated--fade-in"
+                            aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">View Options:</div>
+                            <a class="dropdown-item period-option" href="#" data-period="daily">Daily View</a>
+                            <a class="dropdown-item period-option" href="#" data-period="weekly">Weekly View</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{% url 'accounts:unified_ledger' %}">View Detailed Ledger</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="cashFlowChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center small">
+                        <span class="mr-2">
+                            <i class="bi bi-circle-fill text-success"></i> Cash In
+                        </span>
+                        <span class="mx-3">
+                            <i class="bi bi-circle-fill text-danger"></i> Cash Out
+                        </span>
+                        <span class="ml-2">
+                            <i class="bi bi-circle-fill text-primary"></i> Net Flow
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Due Alerts Section -->
+    <div class="row">
+        <!-- Customer Dues Alert -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow alert-list-card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Customer Dues</h6>
+                        <i class="bi bi-people text-primary"></i>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if customer_dues %}
+                        {% for due in customer_dues %}
+                        <div class="alert-item {% if due.due_date < today %}overdue{% endif %}">
+                            <div class="alert-title">{{ due.customer.name }}</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="alert-subtitle">
+                                    Due: {{ due.due_date|date:"d M Y" }}
+                                </div>
+                                <div class="alert-amount">
+                                    ₹{{ due.amount|intcomma }}
+                                    {% if due.due_date < today %}
+                                    <span class="badge overdue">Overdue</span>
+                                    {% elif due.due_date == today %}
+                                    <span class="badge due-today">Due Today</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert-item">
+                            <div class="text-center py-3">No customer dues today</div>
+                        </div>
+                    {% endif %}
+                </div>
+                {% if customer_dues %}
+                <div class="card-footer text-center">
+                    <a href="{% url 'customers:delivery_list' %}?payment_status=pending" class="btn btn-sm btn-outline-primary">View All Customer Dues</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Supplier Dues Alert -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow alert-list-card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Supplier Dues</h6>
+                        <i class="bi bi-shop text-primary"></i>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if supplier_dues %}
+                        {% for due in supplier_dues %}
+                        <div class="alert-item {% if due.due_date < today %}overdue{% endif %}">
+                            <div class="alert-title">{{ due.supplier.name }}</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="alert-subtitle">
+                                    Due: {{ due.due_date|date:"d M Y" }}
+                                </div>
+                                <div class="alert-amount">
+                                    ₹{{ due.balance|intcomma }}
+                                    {% if due.due_date < today %}
+                                    <span class="badge overdue">Overdue</span>
+                                    {% elif due.due_date == today %}
+                                    <span class="badge due-today">Due Today</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert-item">
+                            <div class="text-center py-3">No supplier dues today</div>
+                        </div>
+                    {% endif %}
+                </div>
+                {% if supplier_dues %}
+                <div class="card-footer text-center">
+                    <a href="{% url 'suppliers:payment_priority' %}" class="btn btn-sm btn-outline-primary">View All Supplier Dues</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Salary Dues Alert -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow alert-list-card">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Salary Dues</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if salary_dues %}
+                        {% for due in salary_dues %}
+                        <div class="alert-item {% if due.due_date < today %}overdue{% endif %}">
+                            <div class="alert-title">{{ due.employee.get_full_name }}</div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="alert-subtitle">
+                                    Due: {{ due.due_date|date:"d M Y" }}
+                                </div>
+                                <div class="alert-amount">
+                                    ₹{{ due.amount|intcomma }}
+                                    {% if due.due_date < today %}
+                                    <span class="badge overdue">Overdue</span>
+                                    {% elif due.due_date == today %}
+                                    <span class="badge due-today">Due Today</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert-item">
+                            <div class="text-center py-3">No salary dues today</div>
+                        </div>
+                    {% endif %}
+                </div>
+                {% if salary_dues %}
+                <div class="card-footer text-center">
+                    <a href="{% url 'employees:salary_record_list' %}" class="btn btn-sm btn-outline-primary">View All Salary Records</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Alerts Section -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="bi bi-lightning-charge-fill me-2"></i>
+                        Smart Alerts
+                        {% if smart_alert_count > 0 %}
+                        <span class="badge bg-warning text-dark ms-2">{{ smart_alert_count }}</span>
+                        {% endif %}
+                    </h6>
+                    <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#smartAlertsCollapse" aria-expanded="true" aria-controls="smartAlertsCollapse">
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                </div>
+                <div class="collapse show" id="smartAlertsCollapse">
+                    <div class="card-body p-0">
+                        <div class="row g-0">
+                            <!-- Due Today Alert -->
+                            <div class="col-lg-3 p-0">
+                                <div class="smart-alert-card border-right">
+                                    <div class="alert-icon {% if due_today_count > 0 %}text-warning{% else %}text-muted{% endif %}">
+                                        <i class="bi bi-calendar-event-fill fs-1"></i>
+                                    </div>
+                                    <div class="alert-content">
+                                        <h6>📅 Due Today</h6>
+                                        {% if due_today_count > 0 %}
+                                            <p class="alert-count">{{ due_today_count }} items</p>
+                                            <ul class="alert-details">
+                                                {% if due_today_items.customers.count > 0 %}
+                                                <li>
+                                                    <span class="badge bg-primary">{{ due_today_items.customers.count }}</span>
+                                                    Customer payments
+                                                </li>
+                                                {% endif %}
+                                                {% if due_today_items.suppliers.count > 0 %}
+                                                <li>
+                                                    <span class="badge bg-info">{{ due_today_items.suppliers.count }}</span>
+                                                    Supplier payments
+                                                </li>
+                                                {% endif %}
+                                                {% if due_today_items.salaries.count > 0 %}
+                                                <li>
+                                                    <span class="badge bg-success">{{ due_today_items.salaries.count }}</span>
+                                                    Salary payments
+                                                </li>
+                                                {% endif %}
+                                                {% if due_today_items.commitments.count > 0 %}
+                                                <li>
+                                                    <span class="badge bg-secondary">{{ due_today_items.commitments.count }}</span>
+                                                    EMIs/commitments
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        {% else %}
+                                            <p class="text-muted">No payments due today</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Stock Low Alert -->
+                            <div class="col-lg-3 p-0">
+                                <div class="smart-alert-card border-right">
+                                    <div class="alert-icon {% if low_stock_count > 0 %}text-danger{% else %}text-muted{% endif %}">
+                                        <i class="bi bi-graph-down-arrow fs-1"></i>
+                                    </div>
+                                    <div class="alert-content">
+                                        <h6>📉 Stock Low</h6>
+                                        {% if low_stock_count > 0 %}
+                                            <p class="alert-count">{{ low_stock_count }} materials</p>
+                                            <ul class="alert-details">
+                                                {% for item in low_stock_items|slice:":3" %}
+                                                <li>
+                                                    <span class="badge {% if item.days_remaining < 2 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                                        {{ item.days_remaining }} days
+                                                    </span>
+                                                    {{ item.material.name }}
+                                                </li>
+                                                {% endfor %}
+                                                {% if low_stock_count > 3 %}
+                                                <li class="text-muted">
+                                                    <small>+{{ low_stock_count|add:"-3" }} more</small>
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        {% else %}
+                                            <p class="text-muted">All materials at healthy levels</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Cash Shortage Warning Alert -->
+                            <div class="col-lg-3 p-0">
+                                <div class="smart-alert-card border-right">
+                                    <div class="alert-icon {% if cash_shortage_warning %}text-danger{% else %}text-muted{% endif %}">
+                                        <i class="bi bi-cash-stack fs-1"></i>
+                                    </div>
+                                    <div class="alert-content">
+                                        <h6>💸 Cash Shortage</h6>
+                                        {% if cash_shortage_warning %}
+                                            <p class="alert-count text-danger">Projected Shortage</p>
+                                            <ul class="alert-details">
+                                                <li>
+                                                    <span class="badge bg-danger">₹{{ cash_shortage_amount|intcomma }}</span>
+                                                    Shortfall
+                                                </li>
+                                                <li>
+                                                    <span class="badge bg-warning text-dark">₹{{ upcoming_outflow|intcomma }}</span>
+                                                    Upcoming payments
+                                                </li>
+                                                <li>
+                                                    <span class="badge bg-success">₹{{ upcoming_inflow|intcomma }}</span>
+                                                    Expected receipts
+                                                </li>
+                                            </ul>
+                                        {% else %}
+                                            <p class="text-success">Cash flow healthy for next 7 days</p>
+                                            <ul class="alert-details">
+                                                <li>
+                                                    <span class="badge bg-success">₹{{ projected_cash|intcomma }}</span>
+                                                    Projected balance
+                                                </li>
+                                            </ul>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- High Risk Customers Alert -->
+                            <div class="col-lg-3 p-0">
+                                <div class="smart-alert-card">
+                                    <div class="alert-icon {% if high_risk_count > 0 %}text-danger{% else %}text-muted{% endif %}">
+                                        <i class="bi bi-exclamation-triangle-fill fs-1"></i>
+                                    </div>
+                                    <div class="alert-content">
+                                        <h6>🚨 High Risk Customers</h6>
+                                        {% if high_risk_count > 0 %}
+                                            <p class="alert-count">{{ high_risk_count }} customers</p>
+                                            <ul class="alert-details">
+                                                {% for customer in high_risk_customers|slice:":3" %}
+                                                <li>
+                                                    <span class="badge bg-danger">HIGH</span>
+                                                    {{ customer.name }}
+                                                </li>
+                                                {% endfor %}
+                                                {% if high_risk_count > 3 %}
+                                                <li class="text-muted">
+                                                    <small>+{{ high_risk_count|add:"-3" }} more</small>
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        {% else %}
+                                            <p class="text-muted">No high-risk customers</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light d-flex justify-content-between">
+                        <small class="text-muted">Last updated: {{ today|date:"d M Y h:i A" }}</small>
+                        <div>
+                            <a href="{% url 'materials:material_list' %}" class="btn btn-sm btn-outline-primary me-2">
+                                <i class="bi bi-boxes"></i> Manage Inventory
+                            </a>
+                            <a href="{% url 'accounts:unified_ledger' %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-journal-text"></i> Financial Overview
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Material Shortage Projections Section -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">Material Shortage Projections</h6>
+                    <a href="{% url 'materials:material_list' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-boxes"></i> View All Materials
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Material</th>
+                                    <th>Current Stock</th>
+                                    <th>Avg. Daily Usage</th>
+                                    <th>Days Remaining</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if material_projections %}
+                                    {% for projection in material_projections %}
+                                        <tr>
+                                            <td>{{ projection.material.name }}</td>
+                                            <td>{{ projection.current_stock }} {{ projection.unit }}</td>
+                                            <td>{{ projection.avg_daily_consumption }} {{ projection.unit }}/day</td>
+                                            <td>
+                                                {% if projection.days_remaining == "N/A" %}
+                                                    N/A
+                                                {% else %}
+                                                    {{ projection.days_remaining }} days
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if projection.status == 'Critical' %}
+                                                    <span class="badge bg-danger">Critical</span>
+                                                {% elif projection.status == 'Low' %}
+                                                    <span class="badge bg-warning text-dark">Low</span>
+                                                {% else %}
+                                                    <span class="badge bg-success">OK</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No material data available</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Action Card -->
+    <div class="row">
+        <div class="col-lg-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <p>Here are some quick links to get started:</p>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'customers:customer_list' %}" class="btn btn-primary btn-block w-100">
+                                <i class="bi bi-people me-2"></i> Manage Customers
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'customers:delivery_create' %}" class="btn btn-success btn-block w-100">
+                                <i class="bi bi-plus-circle me-2"></i> New Delivery
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'expenses:expense_create' %}" class="btn btn-warning btn-block w-100">
+                                <i class="bi bi-plus-circle me-2"></i> Record Expense
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'accounts:unified_ledger' %}" class="btn btn-info btn-block w-100">
+                                <i class="bi bi-journal-text me-2"></i> View Ledger
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Cash Flow Chart
+    const cashFlowCtx = document.getElementById('cashFlowChart').getContext('2d');
+    
+    // Prepare data from the server
+    const months = [{% for month in months_data %}'{{ month.month }}',{% endfor %}];
+    const inflowData = [{% for month in months_data %}{{ month.inflow }},{% endfor %}];
+    const outflowData = [{% for month in months_data %}{{ month.outflow }},{% endfor %}];
+    const netData = [{% for month in months_data %}{{ month.net }},{% endfor %}];
+    
+    // Create the chart
+    const cashFlowChart = new Chart(cashFlowCtx, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [
+          {
+            label: 'Inflow',
+            backgroundColor: 'rgba(40, 167, 69, 0.7)',
+            borderColor: 'rgba(40, 167, 69, 1)',
+            borderWidth: 1,
+            data: inflowData
+          },
+          {
+            label: 'Outflow',
+            backgroundColor: 'rgba(220, 53, 69, 0.7)',
+            borderColor: 'rgba(220, 53, 69, 1)',
+            borderWidth: 1,
+            data: outflowData
+          },
+          {
+            label: 'Net Cash Flow',
+            type: 'line',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            borderColor: 'rgba(0, 123, 255, 1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(0, 123, 255, 1)',
+            pointBorderColor: '#fff',
+            pointRadius: 4,
+            fill: true,
+            tension: 0.4,
+            data: netData
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                label += '₹' + parseFloat(context.raw).toLocaleString('en-IN');
+                return label;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return '₹' + value.toLocaleString('en-IN');
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    // Handle chart type switching
+    document.querySelectorAll('.chart-type').forEach(item => {
+      item.addEventListener('click', event => {
+        const chartType = event.target.getAttribute('data-type');
+        // Update datasets 0 and 1 to the new type, keeping dataset 2 as a line
+        cashFlowChart.config.data.datasets[0].type = chartType;
+        cashFlowChart.config.data.datasets[1].type = chartType;
+        cashFlowChart.update();
+      });
+    });
+    
+    // Due Heatmap
+    const heatmapContainer = document.getElementById('dueHeatmap');
+    const heatmapData = [
+      {% for item in heatmap_data %}
+      {
+        date: '{{ item.date }}',
+        customer: {{ item.customer }},
+        supplier: {{ item.supplier }},
+        commitment: {{ item.commitment }},
+        total: {{ item.total }}
+      },
+      {% endfor %}
+    ];
+    
+    // Calculate the intensity for a value
+    function getHeatmapIntensity(value, max) {
+      if (value === 0) return 0;
+      return Math.min(0.2 + (value / max) * 0.8, 1);
+    }
+    
+    // Create a heatmap calendar
+    function createHeatmap() {
+      // Clear existing content
+      heatmapContainer.innerHTML = '';
+      
+      // Calculate max values for scaling
+      let maxValue = 0;
+      heatmapData.forEach(item => {
+        maxValue = Math.max(maxValue, item.total);
+      });
+      
+      // Get today's date and start of current month
+      const today = new Date('{{ today|date:"Y-m-d" }}');
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      
+      // Calculate the first day to show (today - 15 days)
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 15);
+      
+      // Calculate the last day to show (today + 14 days)
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() + 14);
+      
+      // Get the day of week for the start date (0 = Sunday)
+      let firstDayOfWeek = startDate.getDay();
+      
+      // Create cells for days before the start date (empty cells)
+      for (let i = 0; i < firstDayOfWeek; i++) {
+        const emptyDay = document.createElement('div');
+        emptyDay.className = 'heatmap-day empty';
+        heatmapContainer.appendChild(emptyDay);
+      }
+      
+      // Create day cells from start date to end date
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const dayCell = document.createElement('div');
+        dayCell.className = 'heatmap-day';
+        
+        // Check if this date has dues
+        const dueData = heatmapData.find(item => item.date === dateStr);
+        
+        if (dueData) {
+          // Calculate color based on which type has the highest value
+          let primaryColor, intensity;
+          let tooltipContent = '';
+          
+          if (dueData.customer >= dueData.supplier && dueData.customer >= dueData.commitment) {
+            primaryColor = 'success';
+            intensity = getHeatmapIntensity(dueData.customer, maxValue);
+            tooltipContent = `Customer: ₹${dueData.customer.toLocaleString('en-IN')}`;
+          } else if (dueData.supplier >= dueData.customer && dueData.supplier >= dueData.commitment) {
+            primaryColor = 'danger';
+            intensity = getHeatmapIntensity(dueData.supplier, maxValue);
+            tooltipContent = `Supplier: ₹${dueData.supplier.toLocaleString('en-IN')}`;
+          } else {
+            primaryColor = 'warning';
+            intensity = getHeatmapIntensity(dueData.commitment, maxValue);
+            tooltipContent = `EMI: ₹${dueData.commitment.toLocaleString('en-IN')}`;
+          }
+          
+          // Apply background color with opacity based on intensity
+          let bgColor;
+          if (primaryColor === 'success') {
+            bgColor = `rgba(40, 167, 69, ${intensity})`;
+          } else if (primaryColor === 'danger') {
+            bgColor = `rgba(220, 53, 69, ${intensity})`;
+          } else {
+            bgColor = `rgba(255, 193, 7, ${intensity})`;
+          }
+          
+          dayCell.style.backgroundColor = bgColor;
+          
+          // If the total is high enough, add a tooltip
+          if (dueData.total > 0) {
+            dayCell.setAttribute('data-toggle', 'tooltip');
+            dayCell.setAttribute('data-placement', 'top');
+            dayCell.setAttribute('title', `${dateStr}: ₹${dueData.total.toLocaleString('en-IN')}`);
+            
+            // Create inner HTML with date and amount
+            dayCell.innerHTML = `
+              <div>${currentDate.getDate()}</div>
+              <div class="small">₹${Math.round(dueData.total/1000)}K</div>
+            `;
+          } else {
+            dayCell.textContent = currentDate.getDate();
+          }
+        } else {
+          // No dues for this day
+          dayCell.style.backgroundColor = '#f8f9fa';
+          dayCell.style.color = '#6c757d';
+          dayCell.textContent = currentDate.getDate();
+        }
+        
+        // Highlight today
+        if (currentDate.toDateString() === today.toDateString()) {
+          dayCell.style.border = '2px solid #007bff';
+          dayCell.style.fontWeight = 'bold';
+        }
+        
+        heatmapContainer.appendChild(dayCell);
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      // Initialize tooltips
+      $('[data-toggle="tooltip"]').tooltip();
+    }
+    
+    // Create the heatmap
+    createHeatmap();
+  });
+</script>
+{% endblock %} 

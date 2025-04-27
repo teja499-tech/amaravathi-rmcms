@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}Materials Inventory{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Materials Inventory</h1>
+        <a href="{% url 'materials:material_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Add Material
+        </a>
+    </div>
+    
+    <!-- Search Form -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" name="q" class="form-control" placeholder="Search materials..." value="{{ search_query }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-search me-1"></i> Search
+                        </button>
+                        {% if search_query %}
+                        <a href="{% url 'materials:material_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i> Clear
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Stock Alert Section -->
+    {% with low_stock=materials|dictsortreversed:"current_stock" %}
+    {% with low_materials=low_stock|slice:":5" %}
+    {% if low_materials %}
+    <div class="card shadow mb-4 border-left-warning">
+        <div class="card-header bg-warning bg-opacity-10">
+            <h6 class="m-0 font-weight-bold text-warning">Low Stock Alert</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for material in low_materials %}
+                {% if material.current_stock <= material.reorder_level %}
+                <div class="col-md-6 col-lg-3 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body">
+                            <h6 class="card-title text-truncate">{{ material.name }}</h6>
+                            <p class="card-text text-danger fw-bold">
+                                Stock: {{ material.current_stock }} {{ material.unit }}
+                            </p>
+                            <p class="card-text small">
+                                Reorder Level: {{ material.reorder_level }} {{ material.unit }}
+                            </p>
+                            <a href="{% url 'materials:material_detail' material.pk %}" class="btn btn-sm btn-outline-warning">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% endwith %}
+    
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Materials List</h6>
+        </div>
+        <div class="card-body">
+            {% if materials %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Unit</th>
+                                <th>Current Stock</th>
+                                <th>Reorder Level</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for material in materials %}
+                                <tr>
+                                    <td>{{ material.name }}</td>
+                                    <td>{{ material.unit }}</td>
+                                    <td class="{% if material.current_stock <= material.reorder_level %}text-danger fw-bold{% endif %}">
+                                        {{ material.current_stock }}
+                                        {% if material.current_stock <= material.reorder_level %}
+                                            <span class="badge bg-warning text-dark">Low</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ material.reorder_level }}</td>
+                                    <td>
+                                        <span class="badge {% if material.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                            {% if material.is_active %}Active{% else %}Inactive{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'materials:material_detail' material.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{% url 'materials:material_update' material.pk %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'materials:material_delete' material.pk %}" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <div class="d-flex justify-content-center mt-4">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}page=1" aria-label="First">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}page={{ num }}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-info">
+                    {% if search_query %}
+                        No materials match your search criteria.
+                    {% else %}
+                        No materials have been added yet.
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

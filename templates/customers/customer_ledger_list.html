@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer Ledger{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">Customer Ledger</h1>
+            <p class="text-muted">Financial overview of all customers</p>
+        </div>
+        <div class="col-auto">
+            <div class="btn-group">
+                <a href="{% url 'customers:payment_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Add Payment
+                </a>
+                <a href="?export=true" class="btn btn-success">
+                    <i class="bi bi-download me-1"></i> Export to Excel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-5">
+                            <label for="q" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="q" name="q" placeholder="Customer name, phone or email" value="{{ search_query }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="due_status" class="form-label">Status</label>
+                            <select class="form-select" id="due_status" name="due_status">
+                                <option value="">All Customers</option>
+                                <option value="overdue" {% if due_status == 'overdue' %}selected{% endif %}>With Overdue Payments</option>
+                                <option value="pending" {% if due_status == 'pending' %}selected{% endif %}>With Pending Balance</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                            <a href="{% url 'customers:ledger_list' %}" class="btn btn-outline-secondary">Reset</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Overall Summary</h5>
+                    <div>
+                        <span class="badge bg-primary me-2">Total Orders: ₹{{ overall_summary.total_orders }}</span>
+                        <span class="badge bg-success me-2">Total Paid: ₹{{ overall_summary.total_paid }}</span>
+                        <span class="badge {% if overall_summary.total_outstanding > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                            Total Outstanding: ₹{{ overall_summary.total_outstanding }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Customer List</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if customers_data %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Contact</th>
+                                    <th class="text-center">Orders</th>
+                                    <th class="text-end">Total Amount</th>
+                                    <th class="text-end">Paid Amount</th>
+                                    <th class="text-end">Balance</th>
+                                    <th class="text-end">Overdue Amount</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in customers_data %}
+                                <tr {% if data.overdue_amount > 0 %}class="table-danger"{% elif data.balance_due > 0 %}class="table-warning"{% endif %}>
+                                    <td>
+                                        <a href="{% url 'customers:customer_detail' data.customer.id %}">
+                                            {{ data.customer.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {{ data.customer.phone|default:"-" }}<br>
+                                        <small class="text-muted">{{ data.customer.email|default:"-" }}</small>
+                                    </td>
+                                    <td class="text-center">{{ data.deliveries_count }}</td>
+                                    <td class="text-end">₹{{ data.total_sales }}</td>
+                                    <td class="text-end">₹{{ data.total_received }}</td>
+                                    <td class="text-end">
+                                        <span class="{% if data.balance_due > 0 %}text-danger{% else %}text-success{% endif %}">
+                                            ₹{{ data.balance_due }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        {% if data.overdue_amount > 0 %}
+                                        <span class="text-danger">₹{{ data.overdue_amount }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <a href="{% url 'customers:customer_ledger' data.customer.id %}" class="btn btn-sm btn-info">
+                                                <i class="bi bi-journal-text"></i> View Ledger
+                                            </a>
+                                            <a href="{% url 'customers:payment_create' %}?customer={{ data.customer.id }}" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-cash"></i> Add Payment
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center">
+                        <p>No customers found matching your criteria.</p>
+                        {% if search_query or due_status %}
+                        <a href="{% url 'customers:ledger_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-repeat me-1"></i> Reset Filters
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if is_paginated %}
+                <div class="card-footer bg-white">
+                    <nav>
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if due_status %}&due_status={{ due_status }}{% endif %}">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                            </li>
+                            {% endif %}
+                            
+                            {% for i in page_obj.paginator.page_range %}
+                                {% if page_obj.number == i %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ i }}</span>
+                                </li>
+                                {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ i }}{% if search_query %}&q={{ search_query }}{% endif %}{% if due_status %}&due_status={{ due_status }}{% endif %}">{{ i }}</a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if due_status %}&due_status={{ due_status }}{% endif %}">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

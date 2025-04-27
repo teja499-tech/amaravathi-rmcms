@@ -1,0 +1,1 @@
+web: gunicorn amaravathi_rmbmp.wsgi:application --log-file - 

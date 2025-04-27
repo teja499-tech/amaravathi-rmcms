@@ -1,0 +1,423 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Smart Summary Dashboard | Amaravathi RMC{% endblock %}
+
+{% block extra_head %}
+<style>
+    .card {
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
+    .metric-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+    .sub-metric {
+        font-size: 0.85rem;
+        opacity: 0.9;
+    }
+    .metric-title {
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+    @media (max-width: 767px) {
+        .metric-value {
+            font-size: 1.5rem;
+        }
+        .metric-icon {
+            font-size: 2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="mt-4">Smart Summary Dashboard</h1>
+        <a href="{% url 'dashboard' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="bi bi-speedometer2 me-1"></i> Main Dashboard
+        </a>
+    </div>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+        <li class="breadcrumb-item active">Smart Summary</li>
+    </ol>
+    
+    <!-- Cards Row - Finance Summary -->
+    <div class="row mb-4">
+        <!-- Total Payables Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="metric-title">Total Unpaid Payables</div>
+                            <div class="metric-value">₹{{ total_payables|intcomma }}</div>
+                        </div>
+                        <div class="metric-icon">
+                            <i class="bi bi-cash-stack"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'suppliers:purchase_list' %}">View Purchases</a>
+                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Upcoming Dues Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="metric-title">Upcoming Dues (7 Days)</div>
+                            <div class="metric-value">{{ upcoming_payments_count }}</div>
+                        </div>
+                        <div class="metric-icon">
+                            <i class="bi bi-calendar-event"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'suppliers:payment_list' %}">View Payments</a>
+                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Low Inventory Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="metric-title">Low Inventory Materials</div>
+                            <div class="metric-value">{{ low_inventory_count }}</div>
+                        </div>
+                        <div class="metric-icon">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'materials:inventory_list' %}">View Inventory</a>
+                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Total Sales Card -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="metric-title">Total Sales (30 Days)</div>
+                            <div class="metric-value">₹{{ total_sales|intcomma }}</div>
+                            <div class="sub-metric mt-2">
+                                <div>Regular: ₹{{ regular_sales|intcomma }}</div>
+                                <div>Concrete: ₹{{ concrete_sales|intcomma }}</div>
+                            </div>
+                        </div>
+                        <div class="metric-icon">
+                            <i class="bi bi-truck"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'customers:delivery_list' %}">View Deliveries</a>
+                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cards Row - Customer -->
+    <div class="row mb-4">
+        <!-- Total Receivables Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="metric-title">Total Receivables</div>
+                            <div class="metric-value">₹{{ total_receivables|intcomma }}</div>
+                        </div>
+                        <div class="metric-icon">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'customers:ledger_list' %}">View Customer Ledger</a>
+                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Overdue Receivables Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="metric-title">Overdue Receivables</div>
+                            <div class="metric-value">₹{{ overdue_receivables|intcomma }}</div>
+                        </div>
+                        <div class="metric-icon">
+                            <i class="bi bi-alarm"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="{% url 'customers:ledger_list' %}?due_status=overdue">View Overdue Payments</a>
+                    <div class="small text-white"><i class="bi bi-arrow-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Low Inventory Materials Table -->
+    {% if low_inventory_count > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    Low Inventory Materials
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-responsive-custom">
+                            <thead>
+                                <tr>
+                                    <th>Material</th>
+                                    <th>Current Stock</th>
+                                    <th>Reorder Level</th>
+                                    <th>Unit</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for material in low_inventory_materials %}
+                                <tr>
+                                    <td data-label="Material">
+                                        <a href="{% url 'materials:material_detail' material.id %}">{{ material.name }}</a>
+                                    </td>
+                                    <td data-label="Current Stock">{{ material.current_stock }}</td>
+                                    <td data-label="Reorder Level">{{ material.reorder_level }}</td>
+                                    <td data-label="Unit">{{ material.unit }}</td>
+                                    <td data-label="Status">
+                                        {% if material.current_stock == 0 %}
+                                            <span class="badge bg-danger">Out of Stock</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Low Stock</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <!-- Materials Used by Grade Chart -->
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart-fill me-1"></i>
+                    Raw Materials Used by Grade (Last 30 Days)
+                </div>
+                <div class="card-body">
+                    <canvas id="materialsUsedChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tables Row -->
+    <div class="row mb-4">
+        <!-- Top Suppliers Table -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="bi bi-building me-1"></i>
+                    Top 5 Suppliers (Last 30 Days)
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-responsive-custom" id="topSuppliersTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Supplier</th>
+                                    <th>Total Volume</th>
+                                    <th>Orders</th>
+                                    <th>Avg. Order</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for supplier in top_suppliers %}
+                                <tr>
+                                    <td data-label="Supplier"><a href="{% url 'suppliers:supplier_detail' supplier.id %}">{{ supplier.name }}</a></td>
+                                    <td data-label="Total Volume">₹{{ supplier.total_volume|intcomma }}</td>
+                                    <td data-label="Orders">{{ supplier.order_count }}</td>
+                                    <td data-label="Avg. Order">₹{{ supplier.avg_order|intcomma }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No supplier data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Top Customers Table -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="bi bi-people-fill me-1"></i>
+                    Top 5 Customers (Last 3 Months)
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-responsive-custom" id="topCustomersTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Total Orders</th>
+                                    <th>Order Count</th>
+                                    <th>Avg. Order</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in top_customers %}
+                                <tr>
+                                    <td data-label="Customer"><a href="{% url 'customers:customer_detail' customer.id %}">{{ customer.name }}</a></td>
+                                    <td data-label="Total Orders">₹{{ customer.total_orders|intcomma }}</td>
+                                    <td data-label="Order Count">{{ customer.order_count }}</td>
+                                    <td data-label="Avg. Order">
+                                        {% if customer.order_count %}
+                                            ₹{{ customer.total_orders|floatformat:2|intcomma }}
+                                        {% else %}
+                                            ₹0
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No customer data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Materials used chart
+    const materials = {{ materials|safe }};
+    const grades = {{ grades|safe }};
+    const materialsData = {{ materials_used_data|safe }};
+    
+    // Prepare the datasets
+    const datasets = [];
+    const colors = [
+        'rgba(255, 99, 132, 0.7)',
+        'rgba(54, 162, 235, 0.7)',
+        'rgba(255, 206, 86, 0.7)',
+        'rgba(75, 192, 192, 0.7)',
+        'rgba(153, 102, 255, 0.7)',
+        'rgba(255, 159, 64, 0.7)',
+        'rgba(199, 199, 199, 0.7)',
+        'rgba(83, 102, 255, 0.7)',
+        'rgba(40, 159, 64, 0.7)',
+        'rgba(210, 199, 199, 0.7)',
+    ];
+    
+    grades.forEach((grade, i) => {
+        const data = materials.map(material => materialsData[material][grade] || 0);
+        
+        datasets.push({
+            label: grade,
+            data: data,
+            backgroundColor: colors[i % colors.length],
+            borderColor: colors[i % colors.length].replace('0.7', '1'),
+            borderWidth: 1
+        });
+    });
+    
+    // Create the chart
+    const ctx = document.getElementById('materialsUsedChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: materials,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Materials Used by Grade (Last 30 Days)'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                },
+                y: {
+                    stacked: true,
+                    title: {
+                        display: true,
+                        text: 'Quantity Used'
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+</script>
+{% endblock %} 

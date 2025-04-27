@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Due Report | Amaravathi RMC{% endblock %}
+
+{% block extra_css %}
+<style>
+    .overdue {
+        background-color: #fff3cd;
+    }
+    .nav-tabs .nav-link {
+        font-weight: 500;
+        color: #495057;
+    }
+    .nav-tabs .nav-link.active {
+        color: #007bff;
+        border-color: #007bff #dee2e6 #fff;
+    }
+    .filter-form .form-control,
+    .filter-form .btn {
+        height: 38px;
+    }
+    .summary-box {
+        padding: 1rem;
+        border-radius: 5px;
+        margin-bottom: 1rem;
+    }
+    .summary-box.pending {
+        background-color: #e2f3ff;
+    }
+    .summary-box.overdue {
+        background-color: #fff3cd;
+    }
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .export-btn {
+        margin-left: 5px;
+    }
+    .export-btn i {
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Due Report</h1>
+        <div>
+            <a href="{% url 'core:export_dues' 'excel' %}?type={{ report_type }}&due_before={{ due_before }}&name={{ name_filter }}&min_amount={{ min_amount }}" class="btn btn-sm btn-success export-btn">
+                <i class="bi bi-file-excel"></i> Export to Excel
+            </a>
+            <a href="{% url 'core:export_dues' 'pdf' %}?type={{ report_type }}&due_before={{ due_before }}&name={{ name_filter }}&min_amount={{ min_amount }}" class="btn btn-sm btn-danger export-btn">
+                <i class="bi bi-file-pdf"></i> Export to PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {% if report_type == 'customer' %}active{% endif %}" href="{% url 'core:due_report' %}?type=customer">
+                <i class="bi bi-people"></i> Customer Dues
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if report_type == 'supplier' %}active{% endif %}" href="{% url 'core:due_report' %}?type=supplier">
+                <i class="bi bi-shop"></i> Supplier Dues
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if report_type == 'salary' %}active{% endif %}" href="{% url 'core:due_report' %}?type=salary">
+                <i class="bi bi-cash"></i> Salary Dues
+            </a>
+        </li>
+    </ul>
+
+    <!-- Filters Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3 filter-form">
+                <input type="hidden" name="type" value="{{ report_type }}">
+                
+                <div class="col-md-3">
+                    <label for="due_before" class="form-label">Due Before</label>
+                    <input type="date" class="form-control" id="due_before" name="due_before" value="{{ due_before }}">
+                </div>
+                
+                <div class="col-md-3">
+                    <label for="name" class="form-label">
+                        {% if report_type == 'customer' %}Customer Name
+                        {% elif report_type == 'supplier' %}Supplier Name
+                        {% else %}Employee Name{% endif %}
+                    </label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ name_filter }}" placeholder="Enter name...">
+                </div>
+                
+                <div class="col-md-3">
+                    <label for="min_amount" class="form-label">Minimum Amount</label>
+                    <input type="number" class="form-control" id="min_amount" name="min_amount" value="{{ min_amount }}" placeholder="Min amount...">
+                </div>
+                
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{% url 'core:due_report' %}?type={{ report_type }}" class="btn btn-secondary ms-2">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="summary-box pending">
+                <div class="summary-label">Total Pending</div>
+                <div class="summary-value">₹{{ total_pending|intcomma }}</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="summary-box overdue">
+                <div class="summary-label">Total Overdue</div>
+                <div class="summary-value">₹{{ total_overdue|intcomma }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if report_type == 'customer' %}Customer Dues
+                {% elif report_type == 'supplier' %}Supplier Dues
+                {% else %}Salary Dues{% endif %}
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                {% if report_type == 'customer' %}
+                    <!-- Customer Dues Table -->
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Invoice #</th>
+                                <th>Invoice Date</th>
+                                <th>Due Date</th>
+                                <th>Total Amount</th>
+                                <th>Paid Amount</th>
+                                <th>Pending Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for due in dues %}
+                            <tr class="{% if due.is_overdue %}overdue{% endif %}">
+                                <td>{{ due.customer }}</td>
+                                <td>{{ due.invoice_number }}</td>
+                                <td>{{ due.date|date:"d-m-Y" }}</td>
+                                <td>{{ due.due_date|date:"d-m-Y" }}</td>
+                                <td>₹{{ due.total_amount|intcomma }}</td>
+                                <td>₹{{ due.paid_amount|intcomma }}</td>
+                                <td>₹{{ due.pending_amount|intcomma }}</td>
+                                <td>
+                                    {% if due.is_overdue %}
+                                    <span class="badge bg-warning">Overdue</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Due</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ due.detail_url }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center">No pending dues found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                
+                {% elif report_type == 'supplier' %}
+                    <!-- Supplier Dues Table -->
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Supplier</th>
+                                <th>Invoice #</th>
+                                <th>Invoice Date</th>
+                                <th>Due Date</th>
+                                <th>Total Amount</th>
+                                <th>Paid Amount</th>
+                                <th>Pending Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for due in dues %}
+                            <tr class="{% if due.is_overdue %}overdue{% endif %}">
+                                <td>{{ due.supplier }}</td>
+                                <td>{{ due.invoice_number }}</td>
+                                <td>{{ due.date|date:"d-m-Y" }}</td>
+                                <td>{{ due.due_date|date:"d-m-Y" }}</td>
+                                <td>₹{{ due.total_amount|intcomma }}</td>
+                                <td>₹{{ due.paid_amount|intcomma }}</td>
+                                <td>₹{{ due.pending_amount|intcomma }}</td>
+                                <td>
+                                    {% if due.is_overdue %}
+                                    <span class="badge bg-warning">Overdue</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Due</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ due.detail_url }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center">No pending dues found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                
+                {% else %}
+                    <!-- Salary Dues Table -->
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Month</th>
+                                <th>Due Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for due in dues %}
+                            <tr class="{% if due.is_overdue %}overdue{% endif %}">
+                                <td>{{ due.employee }}</td>
+                                <td>{{ due.month }}</td>
+                                <td>{{ due.due_date|date:"d-m-Y" }}</td>
+                                <td>₹{{ due.amount|intcomma }}</td>
+                                <td>
+                                    {% if due.is_overdue %}
+                                    <span class="badge bg-warning">Overdue</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Due</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ due.detail_url }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center">No pending salaries found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set today as default date for due_before if empty
+        const dueBefore = document.getElementById('due_before');
+        if (!dueBefore.value) {
+            const today = new Date();
+            dueBefore.value = today.toISOString().split('T')[0];
+        }
+    });
+</script>
+{% endblock %} 

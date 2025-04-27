@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Home | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="jumbotron bg-light p-5 rounded">
+        <h1 class="display-4">Welcome to Amaravathi RMC</h1>
+        <p class="lead">Ready-Mix Concrete Management System</p>
+        <hr class="my-4">
+        <p>Manage your customers, suppliers, finances, and more with our comprehensive management system.</p>
+        <div class="mt-4">
+            {% if user.is_authenticated %}
+            <a class="btn btn-primary btn-lg" href="{% url 'dashboard' %}" role="button">
+                <i class="bi bi-speedometer2 me-2"></i>Go to Dashboard
+            </a>
+            {% else %}
+            <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Login
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-people display-4 text-primary mb-3"></i>
+                    <h4 class="card-title">Customer Management</h4>
+                    <p class="card-text">Track customer information, deliveries, and payment status all in one place.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-truck display-4 text-primary mb-3"></i>
+                    <h4 class="card-title">Supplier Management</h4>
+                    <p class="card-text">Maintain supplier details, track purchases, and manage invoices efficiently.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up display-4 text-primary mb-3"></i>
+                    <h4 class="card-title">Financial Management</h4>
+                    <p class="card-text">Handle expenses, track bank accounts, and generate comprehensive financial reports.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

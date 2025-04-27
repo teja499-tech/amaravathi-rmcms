@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Vehicles{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-3">
+                <i class="bi bi-truck text-primary me-2"></i>Vehicles
+            </h2>
+            <p class="text-muted">Manage your company vehicles and track associated expenses.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'expenses:vehicle_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Add Vehicle
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filter -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="type" class="form-label">Vehicle Type</label>
+                    <select name="type" id="type" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Types</option>
+                        {% for value, label in vehicle_types.items %}
+                        <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="status" class="form-label">Status</label>
+                    <select name="status" id="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">Filter</button>
+                    <a href="{% url 'expenses:vehicle_list' %}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Vehicles Grid -->
+    <div class="row">
+        {% for item in vehicles_with_expenses %}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100 {% if not item.vehicle.is_active %}border-secondary{% endif %}">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 {% if not item.vehicle.is_active %}text-muted{% endif %}">
+                        {{ item.vehicle.name }}
+                    </h5>
+                    <span class="badge {% if item.vehicle.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                        {% if item.vehicle.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Registration Number</small>
+                        <div class="fw-bold">{{ item.vehicle.registration_number }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Vehicle Type</small>
+                        <div>{{ item.vehicle.get_vehicle_type_display }}</div>
+                    </div>
+                    {% if item.vehicle.make or item.vehicle.model %}
+                    <div class="mb-3">
+                        <small class="text-muted">Make/Model</small>
+                        <div>{{ item.vehicle.make|default:"" }} {{ item.vehicle.model|default:"" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if item.vehicle.year %}
+                    <div class="mb-3">
+                        <small class="text-muted">Year</small>
+                        <div>{{ item.vehicle.year }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Expense Summary -->
+                    <div class="card mb-3">
+                        <div class="card-body p-3">
+                            <h6 class="card-title">Expense Summary</h6>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Total Expenses</small>
+                                    <div class="h5 mb-0">₹{{ item.total_expenses|floatformat:2 }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Expense Count</small>
+                                    <div class="h5 mb-0">{{ item.expense_count }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Fuel Expenses</small>
+                                    <div>₹{{ item.fuel_expenses|floatformat:2 }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Maintenance</small>
+                                    <div>₹{{ item.maintenance_expenses|floatformat:2 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if item.expenses_by_type %}
+                    <div class="mb-3">
+                        <small class="text-muted">Expenses By Type</small>
+                        <div class="list-group list-group-flush mt-1">
+                            {% for expense in item.expenses_by_type %}
+                            <div class="list-group-item px-0 py-2">
+                                <div class="d-flex justify-content-between">
+                                    <div>{{ expense.expense_type|title }}</div>
+                                    <div class="text-end">
+                                        <div class="fw-bold">₹{{ expense.total|floatformat:2 }}</div>
+                                        <small class="text-muted">{{ expense.count }} expense(s)</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if item.recent_expenses %}
+                    <div class="mb-3">
+                        <small class="text-muted">Recent Expenses</small>
+                        <ul class="list-group list-group-flush mt-1">
+                            {% for expense in item.recent_expenses %}
+                            <li class="list-group-item px-0 py-2">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <small class="text-muted">{{ expense.date|date:"d M Y" }}</small>
+                                        <div>{{ expense.category.name }}</div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold">₹{{ expense.amount|floatformat:2 }}</div>
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="{% url 'expenses:vehicle_detail' item.vehicle.id %}" class="btn btn-outline-primary">
+                            <i class="bi bi-eye me-2"></i>View Details
+                        </a>
+                        <a href="{% url 'expenses:expense_create' %}?vehicle={{ item.vehicle.id }}" class="btn btn-outline-success">
+                            <i class="bi bi-plus-circle me-2"></i>Add Expense
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                No vehicles found. Add your first vehicle to start tracking expenses.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

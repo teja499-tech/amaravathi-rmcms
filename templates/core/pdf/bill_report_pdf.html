@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+            line-height: 1.4;
+        }
+        .container {
+            width: 100%;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .report-info {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .report-info div {
+            width: 48%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            text-align: left;
+            padding: 8px;
+            font-weight: bold;
+        }
+        td {
+            padding: 8px;
+        }
+        .currency {
+            text-align: right;
+        }
+        .report-totals {
+            font-weight: bold;
+            background-color: #eef1f5;
+        }
+        .status-paid {
+            color: #28a745;
+        }
+        .status-unpaid {
+            color: #dc3545;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+        }
+        .footer p {
+            margin: 3px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ title }}</h1>
+        </div>
+        
+        <div class="report-info">
+            <div>
+                <p><strong>Period:</strong> {{ start_date|date:"d-m-Y" }} to {{ end_date|date:"d-m-Y" }}</p>
+            </div>
+            <div style="text-align: right;">
+                <p><strong>Generated On:</strong> {{ current_date|date:"d-m-Y" }}</p>
+            </div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    {% for header in headers %}
+                    <th>{{ header }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if data %}
+                    {% for row in data %}
+                    <tr>
+                        {% for cell in row %}
+                        <td {% if forloop.counter > 4 and forloop.counter < 8 %}class="currency"{% endif %} {% if forloop.last and cell == 'Paid' %}class="status-paid"{% elif forloop.last and cell == 'Unpaid' %}class="status-unpaid"{% endif %}>
+                            {% if forloop.counter > 4 and forloop.counter < 8 %}₹ {% endif %}{{ cell }}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="{{ headers|length }}" style="text-align: center;">No bills found for the selected period.</td>
+                    </tr>
+                {% endif %}
+                
+                <!-- Grand Total -->
+                <tr class="report-totals">
+                    <td colspan="4">Grand Total</td>
+                    <td class="currency">₹ {{ total_bill_amount|floatformat:2 }}</td>
+                    <td class="currency">₹ {{ total_paid_amount|floatformat:2 }}</td>
+                    <td class="currency">₹ {{ total_balance|floatformat:2 }}</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="footer">
+            <p>Amaravathi Ready Mix Concrete</p>
+            <p>Generated on {{ current_date|date:"d-m-Y H:i:s" }}</p>
+        </div>
+    </div>
+</body>
+</html> 

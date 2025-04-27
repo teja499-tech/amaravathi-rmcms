@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+
+{% block title %}Expenses{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-3">
+                <i class="bi bi-cash-coin text-primary me-2"></i>Expenses
+            </h2>
+            <p class="text-muted">Manage and track your business expenses.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'expenses:expense_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Add Expense
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card shadow mb-4 collapse-card">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Filters</h5>
+            <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                <i class="bi bi-chevron-down"></i>
+            </button>
+        </div>
+        <div class="card-body collapse show" id="filterCollapse">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="category" class="form-label">Category</label>
+                    {{ filter_form.category }}
+                </div>
+                <div class="col-md-3">
+                    <label for="expense_type" class="form-label">Type</label>
+                    {{ filter_form.expense_type }}
+                </div>
+                <div class="col-md-3">
+                    <label for="vehicle" class="form-label">Vehicle</label>
+                    {{ filter_form.vehicle }}
+                </div>
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">From Date</label>
+                    {{ filter_form.start_date }}
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">To Date</label>
+                    {{ filter_form.end_date }}
+                </div>
+                <div class="col-md-3">
+                    <label for="min_amount" class="form-label">Min Amount</label>
+                    {{ filter_form.min_amount }}
+                </div>
+                <div class="col-md-3">
+                    <label for="max_amount" class="form-label">Max Amount</label>
+                    {{ filter_form.max_amount }}
+                </div>
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Search</label>
+                    {{ filter_form.search }}
+                </div>
+                <div class="col-md-3">
+                    <label for="tags" class="form-label">Tags (comma separated)</label>
+                    {{ filter_form.tags }}
+                </div>
+                <div class="col-md-12 mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-filter me-2"></i>Apply Filters
+                    </button>
+                    <a href="{% url 'expenses:expense_list' %}" class="btn btn-outline-secondary ms-2">
+                        <i class="bi bi-x-circle me-2"></i>Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow border-left-primary h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Expenses (Current Filter)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ total_amount|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-cash-coin fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Expenses List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Expenses</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive" style="overflow-y: visible; min-height: 300px;">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Vehicle</th>
+                            <th>Payment Method</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-center">Docs</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr style="min-height: 60px;">
+                            <td class="align-middle">{{ expense.date|date:"d M Y" }}</td>
+                            <td class="align-middle">{{ expense.category.name }}</td>
+                            <td class="align-middle">
+                                <span class="badge 
+                                    {% if expense.expense_type == 'vehicle' %}bg-info
+                                    {% elif expense.expense_type == 'fuel' %}bg-warning
+                                    {% elif expense.expense_type == 'maintenance' %}bg-danger
+                                    {% elif expense.expense_type == 'office' %}bg-primary
+                                    {% elif expense.expense_type == 'materials' %}bg-success
+                                    {% elif expense.expense_type == 'utilities' %}bg-secondary
+                                    {% elif expense.expense_type == 'rent' %}bg-dark
+                                    {% elif expense.expense_type == 'salary' %}bg-primary
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ expense.get_expense_type_display }}
+                                </span>
+                            </td>
+                            <td class="align-middle">
+                                {% if expense.description|length > 30 %}
+                                    <span data-bs-toggle="tooltip" data-bs-html="true" title="{{ expense.description }}">
+                                        {{ expense.description|truncatechars:30 }}
+                                    </span>
+                                {% else %}
+                                    {{ expense.description|default:"-" }}
+                                {% endif %}
+                            </td>
+                            <td class="align-middle">
+                                {% if expense.vehicle %}
+                                <a href="{% url 'expenses:vehicle_detail' expense.vehicle.id %}">
+                                    {{ expense.vehicle.name }}
+                                </a>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td class="align-middle">
+                                <span class="badge 
+                                    {% if expense.payment_method == 'cash' %}bg-success
+                                    {% elif expense.payment_method == 'bank_transfer' %}bg-primary
+                                    {% elif expense.payment_method == 'credit_card' %}bg-warning
+                                    {% elif expense.payment_method == 'upi' %}bg-info
+                                    {% elif expense.payment_method == 'cheque' %}bg-secondary
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ expense.get_payment_method_display }}
+                                </span>
+                            </td>
+                            <td class="text-end align-middle">₹{{ expense.amount|floatformat:2 }}</td>
+                            <td class="text-center align-middle">
+                                {% if expense.bill_url %}
+                                <a href="{{ expense.bill_url }}" target="_blank" data-bs-toggle="tooltip" title="View Bill">
+                                    <i class="bi bi-file-earmark-text text-primary"></i>
+                                </a>
+                                {% elif expense.receipt %}
+                                <a href="{{ expense.receipt.url }}" target="_blank" data-bs-toggle="tooltip" title="View Receipt">
+                                    <i class="bi bi-file-earmark text-secondary"></i>
+                                </a>
+                                {% else %}
+                                <i class="bi bi-dash text-muted"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="btn-group">
+                                    <a href="{% url 'expenses:expense_detail' expense.id %}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'expenses:expense_update' expense.id %}" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'expenses:expense_delete' expense.id %}" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center">No expenses found with the current filters.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Expense pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">&laquo; First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last &raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            <div class="text-center mt-2">
+                <small class="text-muted">
+                    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} expenses
+                </small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Monthly Summary -->
+    {% if monthly_summary %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h5 class="mb-0">Monthly Summary</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for month in monthly_summary %}
+                        <tr>
+                            <td>{{ month.month }}</td>
+                            <td class="text-end">₹{{ month.total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Daily Summary -->
+    {% if daily_summary %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h5 class="mb-0">Daily Summary</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th class="text-center">Count</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for day in daily_summary %}
+                        <tr>
+                            <td>{{ day.date|date:"d M Y" }}</td>
+                            <td class="text-center">{{ day.count }}</td>
+                            <td class="text-end">₹{{ day.total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+{% endblock %} 

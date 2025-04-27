@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.id %}Edit{% else %}New{% endif %} Salary Payment | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-3">
+                <i class="bi bi-cash-coin text-primary me-2"></i>
+                {% if form.instance.id %}Edit{% else %}New{% endif %} Salary Payment
+            </h2>
+            <p class="text-muted">Enter details for the salary payment.</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'expenses:salary_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Back to Salaries
+            </a>
+        </div>
+    </div>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h5 class="mb-0">Salary Payment Details</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.employee.id_for_label }}" class="form-label">Employee</label>
+                            {{ form.employee|add_class:"form-select" }}
+                            {% if form.employee.errors %}
+                            <div class="text-danger small">{{ form.employee.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.amount.id_for_label }}" class="form-label">Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                {{ form.amount|add_class:"form-control" }}
+                            </div>
+                            {% if form.amount.errors %}
+                            <div class="text-danger small">{{ form.amount.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.month.id_for_label }}" class="form-label">Month</label>
+                            {{ form.month|add_class:"form-control"|attr:"type:month" }}
+                            <small class="form-text text-muted">Select the month for which this salary is paid</small>
+                            {% if form.month.errors %}
+                            <div class="text-danger small">{{ form.month.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="{{ form.paid_on.id_for_label }}" class="form-label">Payment Date</label>
+                            {{ form.paid_on|add_class:"form-control"|attr:"type:date" }}
+                            {% if form.paid_on.errors %}
+                            <div class="text-danger small">{{ form.paid_on.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                    {{ form.notes|add_class:"form-control" }}
+                    <small class="form-text text-muted">Any additional information about this payment</small>
+                    {% if form.notes.errors %}
+                    <div class="text-danger small">{{ form.notes.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{% url 'expenses:salary_list' %}" class="btn btn-secondary me-2">
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i>Save Salary Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Convert date inputs to proper format
+        const dateInputs = document.querySelectorAll('input[type="date"]');
+        dateInputs.forEach(input => {
+            if (!input.value && input.getAttribute('value')) {
+                input.value = input.getAttribute('value');
+            }
+        });
+        
+        // Convert month inputs to proper format
+        const monthInputs = document.querySelectorAll('input[type="month"]');
+        monthInputs.forEach(input => {
+            if (input.value) {
+                // Ensure it's in YYYY-MM format
+                const date = new Date(input.value);
+                if (!isNaN(date.getTime())) {
+                    const year = date.getFullYear();
+                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                    input.value = `${year}-${month}`;
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

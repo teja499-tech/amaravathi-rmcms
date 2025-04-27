@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}New Purchase{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h4 class="mb-0">Add New Purchase</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.supplier.id_for_label }}" class="form-label">Supplier</label>
+                            {{ form.supplier|add_class:"form-control" }}
+                            {% if form.supplier.errors %}
+                            <div class="text-danger">{{ form.supplier.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.invoice_number.id_for_label }}" class="form-label">Invoice Number</label>
+                            {{ form.invoice_number|add_class:"form-control" }}
+                            {% if form.invoice_number.errors %}
+                            <div class="text-danger">{{ form.invoice_number.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.date.id_for_label }}" class="form-label">Date</label>
+                            <input type="date" name="{{ form.date.html_name }}" id="{{ form.date.id_for_label }}" class="form-control" 
+                                {% if form.instance.date %}value="{{ form.instance.date|date:'Y-m-d' }}"
+                                {% elif form.initial.date %}value="{{ form.initial.date|date:'Y-m-d' }}"
+                                {% elif form.date.value %}value="{{ form.date.value|date:'Y-m-d' }}"{% endif %}>
+                            {% if form.date.errors %}
+                            <div class="text-danger">{{ form.date.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date</label>
+                            <input type="date" name="{{ form.due_date.html_name }}" id="{{ form.due_date.id_for_label }}" class="form-control" 
+                                {% if form.instance.due_date %}value="{{ form.instance.due_date|date:'Y-m-d' }}"
+                                {% elif form.initial.due_date %}value="{{ form.initial.due_date|date:'Y-m-d' }}"
+                                {% elif form.due_date.value %}value="{{ form.due_date.value|date:'Y-m-d' }}"{% endif %}>
+                            <small class="text-muted">{{ form.due_date.help_text }}</small>
+                            {% if form.due_date.errors %}
+                            <div class="text-danger">{{ form.due_date.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.total_amount.id_for_label }}" class="form-label">Total Amount</label>
+                            {{ form.total_amount|add_class:"form-control" }}
+                            {% if form.total_amount.errors %}
+                            <div class="text-danger">{{ form.total_amount.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.paid_amount.id_for_label }}" class="form-label">Paid Amount</label>
+                            {{ form.paid_amount|add_class:"form-control" }}
+                            {% if form.paid_amount.errors %}
+                            <div class="text-danger">{{ form.paid_amount.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                            {{ form.notes|add_class:"form-control" }}
+                            {% if form.notes.errors %}
+                            <div class="text-danger">{{ form.notes.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.invoice_file.id_for_label }}" class="form-label">Invoice File</label>
+                            {{ form.invoice_file|add_class:"form-control" }}
+                            {% if form.invoice_file.errors %}
+                            <div class="text-danger">{{ form.invoice_file.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'suppliers:purchase_list' %}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Purchase</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

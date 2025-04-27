@@ -1,0 +1,619 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Customer Risk Assessment | Amaravathi RMC{% endblock %}
+
+{% block extra_css %}
+<style>
+    .risk-factors {
+        max-height: 120px;
+        overflow-y: auto;
+    }
+    
+    .risk-factor-item {
+        padding: 3px 0;
+        font-size: 0.85rem;
+    }
+    
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .view-all-factors:hover {
+        text-decoration: underline;
+    }
+    
+    .risk-badge {
+        font-size: 0.75rem;
+        padding: 5px 7px;
+        border-radius: 4px;
+        display: inline-block;
+        font-weight: 600;
+    }
+    
+    .risk-high {
+        background-color: rgba(231, 74, 59, 0.2);
+        color: #e74a3b;
+        border: 1px solid #e74a3b;
+    }
+    
+    .risk-medium {
+        background-color: rgba(246, 194, 62, 0.2);
+        color: #f6c23e;
+        border: 1px solid #f6c23e;
+    }
+    
+    .risk-low {
+        background-color: rgba(28, 200, 138, 0.2);
+        color: #1cc88a;
+        border: 1px solid #1cc88a;
+    }
+    
+    .table-action-buttons {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .recalculate-btn {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    /* Enhanced table styles to ensure visibility */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        max-height: none;
+        border: none;
+    }
+    
+    .table {
+        width: 100%;
+        margin-bottom: 1rem;
+        border-collapse: collapse;
+    }
+    
+    .table th, .table td {
+        padding: 0.75rem;
+        vertical-align: middle !important;
+        border-top: 1px solid #dee2e6;
+        white-space: nowrap;
+    }
+    
+    .table tbody tr:last-child td {
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    /* Action buttons - ensure they don't get cut off */
+    .action-column {
+        min-width: 100px;
+    }
+    
+    /* Card view improvements */
+    @media (max-width: 992px) {
+        .responsive-card-table {
+            overflow: visible;
+            margin-bottom: 2rem;
+        }
+        
+        .card-view tbody tr {
+            margin-bottom: 1.5rem !important;
+            display: block;
+        }
+    }
+    
+    /* Full width container for the table */
+    .table-full-width {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Customer Risk Assessment</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0 mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'customers:customer_list' %}">Customers</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Risk Assessment</li>
+                </ol>
+            </nav>
+        </div>
+        <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#recalculateModal">
+                <i class="fas fa-sync-alt mr-1"></i> Recalculate All
+            </button>
+        </div>
+    </div>
+
+    <!-- Risk Summary Cards -->
+    <div class="row mb-4">
+        <!-- High Risk Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                High Risk Customers
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ high_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-exclamation-triangle-fill fa-2x text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medium Risk Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Medium Risk Customers
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ medium_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-exclamation-circle fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Risk Card -->
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Low Risk Customers
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ low_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-check-circle fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Assessment Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="bi bi-shield-exclamation me-1"></i> Customer Risk Assessment
+            </h6>
+            <div class="dropdown no-arrow">
+                <a class="dropdown-toggle" href="#" role="button" id="filterDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end shadow animated--fade-in" aria-labelledby="filterDropdown">
+                    <div class="dropdown-header">Filter Options:</div>
+                    <a class="dropdown-item" href="{% url 'customers:risk_assessment' %}?risk_level=HIGH">High Risk Only</a>
+                    <a class="dropdown-item" href="{% url 'customers:risk_assessment' %}?risk_level=MEDIUM">Medium Risk Only</a>
+                    <a class="dropdown-item" href="{% url 'customers:risk_assessment' %}?risk_level=LOW">Low Risk Only</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="{% url 'customers:risk_assessment' %}">Show All</a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Search Form -->
+            <form method="get" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" placeholder="Search customers..." value="{{ search_term }}">
+                    {% if selected_risk %}
+                    <input type="hidden" name="risk_level" value="{{ selected_risk }}">
+                    {% endif %}
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <a href="{% url 'customers:risk_assessment' %}" class="btn btn-secondary">
+                            <i class="bi bi-x"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Risk Assessment Table -->
+            {% if customers %}
+            <div class="table-full-width">
+                <div class="table-responsive responsive-card-table">
+                    <form id="bulkActionForm" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" id="bulkAction" value="">
+                        <table class="table table-bordered" id="riskTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input" id="selectAll">
+                                            <label class="custom-control-label" for="selectAll"></label>
+                                        </div>
+                                    </th>
+                                    <th>Customer</th>
+                                    <th>Contact</th>
+                                    <th>Risk Level</th>
+                                    <th>Risk Factors</th>
+                                    <th>Last Updated</th>
+                                    <th>Recommendation</th>
+                                    <th class="action-column">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for customer in customers %}
+                                <tr class="{% if customer.risk_score == 'HIGH' %}table-danger{% elif customer.risk_score == 'MEDIUM' %}table-warning{% endif %}">
+                                    <td>
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input customer-select" id="customer_{{ customer.id }}" name="selected_customers" value="{{ customer.id }}">
+                                            <label class="custom-control-label" for="customer_{{ customer.id }}"></label>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'customers:customer_detail' customer.id %}">{{ customer.name }}</a>
+                                    </td>
+                                    <td>
+                                        {% if customer.phone %}
+                                        <div>{{ customer.phone }}</div>
+                                        {% endif %}
+                                        {% if customer.email %}
+                                        <div>{{ customer.email }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.risk_score == 'HIGH' %}
+                                        <span class="risk-badge risk-high">High Risk</span>
+                                        {% elif customer.risk_score == 'MEDIUM' %}
+                                        <span class="risk-badge risk-medium">Medium Risk</span>
+                                        {% else %}
+                                        <span class="risk-badge risk-low">Low Risk</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.risk_notes %}
+                                        <div class="risk-factors">
+                                            {% for note in customer.risk_notes.split|slice:":3" %}
+                                            <div class="risk-factor-item">{{ note }}</div>
+                                            {% endfor %}
+                                            {% if customer.risk_notes.split|length > 3 %}
+                                            <div class="text-primary small cursor-pointer view-all-factors" data-bs-toggle="modal" data-bs-target="#factorsModal{{ customer.id }}">View all {{ customer.risk_notes.split|length }} factors</div>
+                                            
+                                            <!-- Risk Factors Modal -->
+                                            <div class="modal fade" id="factorsModal{{ customer.id }}" tabindex="-1" aria-labelledby="factorsModalLabel{{ customer.id }}" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="factorsModalLabel{{ customer.id }}">Risk Factors for {{ customer.name }}</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <ul class="list-group">
+                                                                {% for note in customer.risk_notes.split %}
+                                                                <li class="list-group-item">{{ note }}</li>
+                                                                {% endfor %}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">No risk factors</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if customer.risk_last_updated %}
+                                        {{ customer.risk_last_updated|date:"M d, Y" }}<br>
+                                        <small class="text-muted">{{ customer.risk_last_updated|time:"H:i" }}</small>
+                                        {% else %}
+                                        <span class="text-muted">Not assessed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% with recommendations=customer.get_payment_recommendations %}
+                                        {% if recommendations.require_advance %}
+                                        <div class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> Advance payment required</div>
+                                        {% endif %}
+                                        {% if recommendations.manual_followup %}
+                                        <div><i class="bi bi-bell-fill me-1"></i> Manual follow-up needed</div>
+                                        {% endif %}
+                                        <div class="small text-muted">{{ recommendations.credit_limit }}</div>
+                                        {% endwith %}
+                                    </td>
+                                    <td class="action-column">
+                                        <div class="table-action-buttons">
+                                            <button type="button" class="btn btn-primary btn-sm recalculate-btn" 
+                                                    onclick="recalculateSingleCustomer('{{ customer.id }}')">
+                                                <i class="bi bi-arrow-repeat"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-warning btn-sm" 
+                                                    data-bs-toggle="modal" data-bs-target="#editRiskModal{{ customer.id }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </div>
+
+                                        <!-- Edit Risk Modal -->
+                                        <div class="modal fade" id="editRiskModal{{ customer.id }}" tabindex="-1" aria-labelledby="editRiskModalLabel{{ customer.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="editRiskModalLabel{{ customer.id }}">Edit Risk Score for {{ customer.name }}</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <form method="post">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="update_risk">
+                                                        <input type="hidden" name="customer_id" value="{{ customer.id }}">
+                                                        <div class="modal-body">
+                                                            <div class="form-group">
+                                                                <label for="risk_score{{ customer.id }}">Risk Level</label>
+                                                                <select class="form-control" id="risk_score{{ customer.id }}" name="risk_score">
+                                                                    <option value="LOW" {% if customer.risk_score == 'LOW' %}selected{% endif %}>Low Risk</option>
+                                                                    <option value="MEDIUM" {% if customer.risk_score == 'MEDIUM' %}selected{% endif %}>Medium Risk</option>
+                                                                    <option value="HIGH" {% if customer.risk_score == 'HIGH' %}selected{% endif %}>High Risk</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="risk_notes{{ customer.id }}">Risk Notes</label>
+                                                                <textarea class="form-control" id="risk_notes{{ customer.id }}" name="risk_notes" rows="4">{{ customer.risk_notes }}</textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-secondary" onclick="submitBulkAction('recalculate_selected')">
+                                <i class="bi bi-arrow-repeat me-1"></i> Recalculate Selected
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center my-5">
+                <i class="bi bi-emoji-smile fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No customers found</h4>
+                <p>No customers match your filter criteria.</p>
+                <a href="{% url 'customers:risk_assessment' %}" class="btn btn-primary mt-2">
+                    <i class="bi bi-arrow-left"></i> Clear Filters
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Recalculate Risk Modal -->
+<div class="modal fade" id="recalculateModal" tabindex="-1" role="dialog" aria-labelledby="recalculateModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="recalculateModalLabel">Recalculate Risk Scores</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>This will recalculate risk scores for all customers based on their payment history, outstanding balances, and other factors.</p>
+                <p>This process may take a moment. Do you want to proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="recalculate_all">
+                    <button type="submit" class="btn btn-primary">Recalculate All</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Risk Modal -->
+<div class="modal fade" id="editRiskModal" tabindex="-1" role="dialog" aria-labelledby="editRiskModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editRiskModalLabel">Edit Risk Assessment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="update_risk">
+                    <input type="hidden" name="customer_id" id="edit_customer_id">
+                    
+                    <div class="form-group">
+                        <label>Customer:</label>
+                        <div id="edit_customer_name" class="font-weight-bold"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="risk_score">Risk Level:</label>
+                        <select name="risk_score" id="edit_risk_score" class="form-control">
+                            {% for risk_code, risk_name in risk_levels %}
+                            <option value="{{ risk_code }}">{{ risk_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="risk_notes">Risk Notes:</label>
+                        <textarea name="risk_notes" id="edit_risk_notes" class="form-control" rows="4"></textarea>
+                        <small class="form-text text-muted">Enter reasons for risk assessment and any additional notes.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle select all checkbox
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.customer-select');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = selectAllCheckbox.checked;
+                });
+            });
+        }
+        
+        // Handle recalculate button
+        const recalculateButton = document.getElementById('recalculateSelected');
+        if (recalculateButton) {
+            recalculateButton.addEventListener('click', function() {
+                const form = document.getElementById('bulkActionForm');
+                document.getElementById('bulkAction').value = 'recalculate_selected';
+                
+                // Check if any customers are selected
+                const selectedCustomers = document.querySelectorAll('.customer-select:checked');
+                if (selectedCustomers.length === 0) {
+                    alert('Please select at least one customer to recalculate risk score.');
+                    return false;
+                }
+                
+                form.submit();
+            });
+        }
+        
+        // Add responsive table toggle function
+        const addCardViewToggle = function() {
+            const tables = document.querySelectorAll('.responsive-card-table');
+            tables.forEach(table => {
+                const toggleContainer = document.createElement('div');
+                toggleContainer.className = 'mb-2';
+                
+                const toggleButton = document.createElement('button');
+                toggleButton.className = 'btn btn-sm btn-outline-primary card-view-toggle';
+                toggleButton.innerHTML = '<i class="bi bi-phone me-1"></i> Toggle Card View';
+                toggleButton.addEventListener('click', function() {
+                    table.classList.toggle('card-view');
+                    const isCardView = table.classList.contains('card-view');
+                    localStorage.setItem('cardViewPreference', isCardView);
+                });
+                
+                toggleContainer.appendChild(toggleButton);
+                table.parentNode.insertBefore(toggleContainer, table);
+                
+                // Check saved preference
+                const cardViewPreference = localStorage.getItem('cardViewPreference');
+                if (cardViewPreference === 'true') {
+                    table.classList.add('card-view');
+                }
+            });
+        };
+        
+        // Fix table container height to ensure all rows are visible
+        const fixTableContainerHeight = function() {
+            const tableContainer = document.querySelector('.table-responsive');
+            if (tableContainer) {
+                // Reset any max-height that might be limiting the table
+                tableContainer.style.maxHeight = 'none';
+                
+                // Ensure parent container doesn't restrict height
+                const parentContainers = document.querySelectorAll('.card, .card-body');
+                parentContainers.forEach(container => {
+                    if (container.contains(tableContainer)) {
+                        container.style.overflow = 'visible';
+                    }
+                });
+            }
+        };
+        
+        // Initialize responsive table if on small screen
+        if (window.innerWidth < 992) {
+            addCardViewToggle();
+        }
+        
+        // Always fix the table container
+        fixTableContainerHeight();
+        
+        // Add window resize listener to re-fix table if needed
+        window.addEventListener('resize', fixTableContainerHeight);
+    });
+    
+    // Function to recalculate risk for a single customer
+    function recalculateSingleCustomer(customerId) {
+        // Create a temporary form to submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.style.display = 'none';
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Add action
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'recalculate_selected';
+        form.appendChild(actionInput);
+        
+        // Add customer ID
+        const customerInput = document.createElement('input');
+        customerInput.type = 'hidden';
+        customerInput.name = 'selected_customers';
+        customerInput.value = customerId;
+        form.appendChild(customerInput);
+        
+        // Append to document and submit
+        document.body.appendChild(form);
+        form.submit();
+    }
+    
+    // Function to submit bulk action
+    function submitBulkAction(action) {
+        const form = document.getElementById('bulkActionForm');
+        document.getElementById('bulkAction').value = action;
+        
+        // Check if any customers are selected
+        const selectedCustomers = document.querySelectorAll('.customer-select:checked');
+        if (selectedCustomers.length === 0) {
+            alert('Please select at least one customer.');
+            return false;
+        }
+        
+        form.submit();
+    }
+</script>
+{% endblock %} 

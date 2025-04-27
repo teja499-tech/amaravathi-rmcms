@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load account_filters %}
+
+{% block title %}Profit/Loss Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-3">
+                <i class="bi bi-bar-chart text-primary me-2"></i>Profit/Loss Report
+            </h2>
+            <p class="text-muted">View your business performance over time</p>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h5 class="mb-0">Date Range</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="start_date" class="form-label">From Date</label>
+                    <input type="date" name="start_date" id="start_date" class="form-control" 
+                          value="{{ start_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="end_date" class="form-label">To Date</label>
+                    <input type="date" name="end_date" id="end_date" class="form-control" 
+                          value="{{ end_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search me-2"></i>Generate Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow border-left-success h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Income
+                            </div>
+                            <div class="h3 mb-0 font-weight-bold text-gray-800">₹{{ total_income|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-graph-up-arrow fa-2x text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow border-left-danger h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Total Outflow
+                            </div>
+                            <div class="h3 mb-0 font-weight-bold text-gray-800">₹{{ total_outflow|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-graph-down-arrow fa-2x text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Net Profit/Loss</h5>
+                    {% if is_profit %}
+                    <span class="badge bg-success">PROFIT</span>
+                    {% else %}
+                    <span class="badge bg-danger">LOSS</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <h1 class="display-4 {% if is_profit %}text-success{% else %}text-danger{% endif %}">
+                            {% if is_profit %}+{% else %}-{% endif %}₹{{ net_profit|abs_value|floatformat:2 }}
+                        </h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Details -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Income Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <td>Deliveries</td>
+                                <td class="text-end">₹{{ total_income|floatformat:2 }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="fw-bold">
+                            <tr>
+                                <td>Total Income</td>
+                                <td class="text-end">₹{{ total_income|floatformat:2 }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Expense Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <td>Regular Expenses</td>
+                                <td class="text-end">₹{{ total_expenses|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <td>Salaries</td>
+                                <td class="text-end">₹{{ total_salaries|floatformat:2 }}</td>
+                            </tr>
+                            <tr>
+                                <td>Purchases</td>
+                                <td class="text-end">₹{{ total_purchases|floatformat:2 }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="fw-bold">
+                            <tr>
+                                <td>Total Expenses</td>
+                                <td class="text-end">₹{{ total_outflow|floatformat:2 }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

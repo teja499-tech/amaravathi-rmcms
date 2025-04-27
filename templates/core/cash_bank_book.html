@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .date-header {
+        background-color: #eef1f5;
+        font-weight: bold;
+    }
+    .currency {
+        text-align: right;
+    }
+    .balance {
+        font-weight: bold;
+        text-align: right;
+    }
+    .filter-form {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .summary-section {
+        margin-bottom: 20px;
+    }
+    .summary-card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 15px;
+        text-align: center;
+        height: 100%;
+    }
+    .summary-card h5 {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 10px;
+    }
+    .summary-card .value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+    }
+    .positive {
+        color: #28a745;
+    }
+    .negative {
+        color: #dc3545;
+    }
+    .export-btn {
+        margin-left: 10px;
+    }
+    .nav-tabs .nav-link {
+        font-weight: 500;
+    }
+    .nav-tabs .nav-link.active {
+        border-bottom: 3px solid #007bff;
+        color: #007bff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>{{ title }}</h4>
+        <div>
+            <a href="{% url 'core:export_cash_bank_book' 'excel' %}?{{ query_params }}" class="btn btn-sm btn-success export-btn">
+                <i class="bi bi-file-excel"></i> Export to Excel
+            </a>
+            <a href="{% url 'core:export_cash_bank_book' 'pdf' %}?{{ query_params }}" class="btn btn-sm btn-danger export-btn">
+                <i class="bi bi-file-pdf"></i> Export to PDF
+            </a>
+        </div>
+    </div>
+
+    <!-- Mode Selection Tabs -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link {% if mode == 'all' %}active{% endif %}" href="?mode=all{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">
+                All Transactions
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if mode == 'cash' %}active{% endif %}" href="?mode=cash{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">
+                Cash Book
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if mode == 'bank' %}active{% endif %}" href="?mode=bank{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">
+                Bank Book
+            </a>
+        </li>
+    </ul>
+
+    <!-- Filter Form -->
+    <div class="filter-form">
+        <form method="get" class="row g-3">
+            <input type="hidden" name="mode" value="{{ mode }}">
+            
+            <div class="col-md-4">
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+            </div>
+            
+            <div class="col-md-4">
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+            </div>
+            
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">Apply Filters</button>
+                <a href="?mode={{ mode }}" class="btn btn-outline-secondary ms-2">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="row summary-section">
+        <div class="col-md-3">
+            <div class="summary-card">
+                <h5>Opening Balance</h5>
+                <div class="value">₹ {{ opening_balance|intcomma }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <h5>Total Receipts</h5>
+                <div class="value positive">₹ {{ total_receipts|intcomma }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <h5>Total Payments</h5>
+                <div class="value negative">₹ {{ total_payments|intcomma }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <h5>Closing Balance</h5>
+                <div class="value">₹ {{ closing_balance|intcomma }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day-wise Transactions -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <h5 class="card-title">Day-wise Transactions</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th>Receipts (₹)</th>
+                            <th>Payments (₹)</th>
+                            <th>Balance (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Opening Balance Row -->
+                        <tr>
+                            <td>{{ start_date|date:"d-m-Y" }}</td>
+                            <td>Opening Balance</td>
+                            <td></td>
+                            <td class="currency"></td>
+                            <td class="currency"></td>
+                            <td class="balance">{{ opening_balance|intcomma }}</td>
+                        </tr>
+                        
+                        {% if day_wise_entries %}
+                            {% with running_balance=opening_balance %}
+                            {% for date_str, day_data in day_wise_entries %}
+                                {% with running_balance=running_balance|add:day_data.net_flow %}
+                                <!-- Day Header with Totals -->
+                                <tr class="date-header">
+                                    <td>{{ day_data.date|date:"d-m-Y" }}</td>
+                                    <td>Daily Total</td>
+                                    <td></td>
+                                    <td class="currency">{{ day_data.total_receipts|intcomma }}</td>
+                                    <td class="currency">{{ day_data.total_payments|intcomma }}</td>
+                                    <td class="balance">{{ running_balance|intcomma }}</td>
+                                </tr>
+                                
+                                <!-- Individual Transactions -->
+                                {% for transaction in day_data.transactions %}
+                                <tr>
+                                    <td>{{ transaction.date|date:"d-m-Y" }}</td>
+                                    <td>{{ transaction.description }}</td>
+                                    <td>{{ transaction.reference }}</td>
+                                    <td class="currency">
+                                        {% if transaction.receipt_amount > 0 %}
+                                        {{ transaction.receipt_amount|intcomma }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="currency">
+                                        {% if transaction.payment_amount > 0 %}
+                                        {{ transaction.payment_amount|intcomma }}
+                                        {% endif %}
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                {% endfor %}
+                                {% endwith %}
+                            {% endfor %}
+                            {% endwith %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center">No transactions found for the selected period.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

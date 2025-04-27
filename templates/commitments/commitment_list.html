@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Commitments | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Commitments</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0 mb-0">
+                    <li class="breadcrumb-item active" aria-current="page">Commitments</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{% url 'commitments:commitment_create' %}" class="btn btn-sm btn-primary shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> New Commitment
+        </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Active Commitments</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-calendar-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                This Month's Payments</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ current_month_total|intcomma }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-cash-stack fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Upcoming (7 Days)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ upcoming_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-clock-history fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Overdue Payments</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ overdue_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="bi bi-funnel me-1"></i> Filters
+            </h6>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-toggle="collapse" data-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+        <div class="collapse show" id="filterCollapse">
+            <div class="card-body">
+                <form method="get" class="mb-0">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="category">Category</label>
+                            <select name="category" id="category" class="form-control">
+                                <option value="">All Categories</option>
+                                {% for category_choice in categories %}
+                                <option value="{{ category_choice.0 }}" {% if filter_category == category_choice.0 %}selected{% endif %}>
+                                    {{ category_choice.1 }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="status">Status</label>
+                            <select name="status" id="status" class="form-control">
+                                <option value="">All Statuses</option>
+                                {% for status_choice in statuses %}
+                                <option value="{{ status_choice.0 }}" {% if filter_status == status_choice.0 %}selected{% endif %}>
+                                    {{ status_choice.1 }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="payment_frequency">Payment Frequency</label>
+                            <select name="payment_frequency" id="payment_frequency" class="form-control">
+                                <option value="">All Frequencies</option>
+                                {% for frequency_choice in frequencies %}
+                                <option value="{{ frequency_choice.0 }}" {% if filter_frequency == frequency_choice.0 %}selected{% endif %}>
+                                    {{ frequency_choice.1 }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="search">Search</label>
+                            <input type="text" class="form-control" id="search" name="search" placeholder="Title, payee, etc." value="{{ search_query }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 text-right">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search me-1"></i> Filter
+                            </button>
+                            <a href="{% url 'commitments:commitment_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i> Clear Filters
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commitments List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Commitments</h6>
+        </div>
+        <div class="card-body">
+            {% if commitments %}
+            <div class="table-responsive">
+                <table class="table table-bordered" id="commitments-table" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Payee</th>
+                            <th>Amount</th>
+                            <th>Frequency</th>
+                            <th>Next Payment</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for commitment in commitments %}
+                        <tr>
+                            <td>{{ commitment.title }}</td>
+                            <td>{{ commitment.get_category_display }}</td>
+                            <td>{{ commitment.payee_name }}</td>
+                            <td>₹{{ commitment.amount|intcomma }}</td>
+                            <td>{{ commitment.get_payment_frequency_display }}</td>
+                            <td>
+                                {% if commitment.next_payment_date %}
+                                <span class="{% if commitment.next_payment_date < today %}text-danger font-weight-bold{% elif commitment.next_payment_date|date:'Y-m-d' == today|date:'Y-m-d' %}text-warning font-weight-bold{% endif %}">
+                                    {{ commitment.next_payment_date|date:"M d, Y" }}
+                                    {% if commitment.next_payment_date < today %}
+                                    <span class="badge badge-danger">Overdue</span>
+                                    {% elif commitment.next_payment_date|date:'Y-m-d' == today|date:'Y-m-d' %}
+                                    <span class="badge badge-warning">Today</span>
+                                    {% endif %}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if commitment.status == 'active' %}
+                                <span class="badge badge-success">Active</span>
+                                {% elif commitment.status == 'completed' %}
+                                <span class="badge badge-primary">Completed</span>
+                                {% elif commitment.status == 'on_hold' %}
+                                <span class="badge badge-warning">On Hold</span>
+                                {% elif commitment.status == 'terminated' %}
+                                <span class="badge badge-danger">Terminated</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'commitments:commitment_detail' commitment.id %}" class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'commitments:commitment_update' commitment.id %}" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'commitments:record_payment' commitment.id %}" class="btn btn-sm btn-success">
+                                        <i class="bi bi-cash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center my-4">
+                <div class="mb-3">
+                    <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+                </div>
+                <h5 class="text-muted">No commitments found</h5>
+                <p class="text-muted">Try adjusting your filters or create a new commitment.</p>
+                <a href="{% url 'commitments:commitment_create' %}" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-circle me-1"></i> New Commitment
+                </a>
+            </div>
+            {% endif %}
+            
+            <!-- Pagination -->
+            {% if commitments.has_other_pages %}
+            <div class="mt-4">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        {% if commitments.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_category %}&category={{ filter_category }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_frequency %}&payment_frequency={{ filter_frequency }}{% endif %}" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ commitments.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_category %}&category={{ filter_category }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_frequency %}&payment_frequency={{ filter_frequency }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;&laquo;</a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;</a>
+                        </li>
+                        {% endif %}
+
+                        {% for i in page_range %}
+                        {% if commitments.number == i %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                        {% elif i > 0 %}
+                        <li class="page-item"><a class="page-link" href="?page={{ i }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_category %}&category={{ filter_category }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_frequency %}&payment_frequency={{ filter_frequency }}{% endif %}">{{ i }}</a></li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if commitments.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ commitments.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_category %}&category={{ filter_category }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_frequency %}&payment_frequency={{ filter_frequency }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ commitments.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if filter_category %}&category={{ filter_category }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_frequency %}&payment_frequency={{ filter_frequency }}{% endif %}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;</a>
+                        </li>
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Initialize datatables
+        $('#commitments-table').DataTable({
+            "ordering": true,
+            "searching": false,
+            "paging": false,
+            "info": false,
+            "responsive": true,
+            "order": [[5, "asc"]], // Sort by next payment date
+        });
+    });
+</script>
+{% endblock %} 

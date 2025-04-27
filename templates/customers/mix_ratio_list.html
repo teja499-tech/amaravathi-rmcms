@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}Mix Ratios{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Concrete Mix Ratios</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+        <li class="breadcrumb-item active">Mix Ratios</li>
+    </ol>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-layer-group me-1"></i>
+                Mix Ratios
+            </div>
+            <a href="{% url 'customers:mix_ratio_create' %}" class="btn btn-success btn-sm">
+                <i class="fas fa-plus me-1"></i> Add Mix Ratio
+            </a>
+        </div>
+        <div class="card-body">
+            {% for grade_code, grade_name in grade_choices %}
+                <div class="mb-4">
+                    <h5 class="border-bottom pb-2">Grade {{ grade_name }}</h5>
+                    
+                    {% with grade_ratios=mix_ratios|dictsortreversed:"material" %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Material</th>
+                                        <th>Quantity per m³</th>
+                                        <th>Unit</th>
+                                        <th width="150">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ratio in mix_ratios %}
+                                        {% if ratio.grade == grade_code %}
+                                            <tr>
+                                                <td>{{ ratio.material.name }}</td>
+                                                <td>{{ ratio.qty_per_m3 }}</td>
+                                                <td>{{ ratio.material.unit }}</td>
+                                                <td>
+                                                    <a href="{% url 'customers:mix_ratio_update' ratio.pk %}" class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <a href="{% url 'customers:mix_ratio_delete' ratio.pk %}" class="btn btn-sm btn-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if not mix_ratios|dictsort:"grade"|selectattr:"grade"|selectattr:"grade","equalto",grade_code %}
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">
+                                                No materials defined for this grade.
+                                                <a href="{% url 'customers:mix_ratio_create' %}" class="btn btn-sm btn-outline-primary ms-2">
+                                                    <i class="fas fa-plus me-1"></i> Add Material
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endwith %}
+                </div>
+            {% endfor %}
+
+            {% if not mix_ratios %}
+                <div class="alert alert-info text-center">
+                    <p>No mix ratios defined yet.</p>
+                    <a href="{% url 'customers:mix_ratio_create' %}" class="btn btn-primary mt-2">
+                        <i class="fas fa-plus me-1"></i> Create First Mix Ratio
+                    </a>
+                </div>
+            {% endif %}
+
+            <div class="alert alert-warning mt-4">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Note:</strong> Define mix ratios for all materials needed for each concrete grade. 
+                These ratios determine how much of each material will be deducted from inventory when creating concrete deliveries.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

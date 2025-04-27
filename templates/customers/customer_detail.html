@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load customer_extras %}
+
+{% block title %}Customer Details - {{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Customer Details</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'customers:customer_list' %}">Customers</a></li>
+        <li class="breadcrumb-item active">{{ customer.name }}</li>
+    </ol>
+
+    <div class="row">
+        <!-- Customer Information Card -->
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-user-circle me-1"></i>
+                    Customer Information
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h5 class="fw-bold">{{ customer.name }}</h5>
+                        {% if customer.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                        
+                        <!-- Risk Score Badge -->
+                        {% if customer.risk_score == 'HIGH' %}
+                            <span class="badge bg-danger ms-1">High Risk</span>
+                        {% elif customer.risk_score == 'MEDIUM' %}
+                            <span class="badge bg-warning ms-1">Medium Risk</span>
+                        {% else %}
+                            <span class="badge bg-success ms-1">Low Risk</span>
+                        {% endif %}
+                    </div>
+                    
+                    <dl class="row">
+                        {% if customer.phone %}
+                        <dt class="col-sm-3">Phone</dt>
+                        <dd class="col-sm-9">{{ customer.phone }}</dd>
+                        {% endif %}
+                        
+                        {% if customer.email %}
+                        <dt class="col-sm-3">Email</dt>
+                        <dd class="col-sm-9">{{ customer.email }}</dd>
+                        {% endif %}
+                        
+                        {% if customer.address %}
+                        <dt class="col-sm-3">Address</dt>
+                        <dd class="col-sm-9">{{ customer.address }}</dd>
+                        {% endif %}
+                        
+                        {% if customer.gst_number %}
+                        <dt class="col-sm-3">GST Number</dt>
+                        <dd class="col-sm-9">{{ customer.gst_number }}</dd>
+                        {% endif %}
+                        
+                        <dt class="col-sm-3">Created On</dt>
+                        <dd class="col-sm-9">{{ customer.created_at|date:"M d, Y" }}</dd>
+                        
+                        <!-- Risk Information -->
+                        <dt class="col-sm-3">Risk Assessment</dt>
+                        <dd class="col-sm-9">
+                            {% if customer.risk_score == 'HIGH' %}
+                                <div class="text-danger">High Risk Customer</div>
+                            {% elif customer.risk_score == 'MEDIUM' %}
+                                <div class="text-warning">Medium Risk Customer</div>
+                            {% else %}
+                                <div class="text-success">Low Risk Customer</div>
+                            {% endif %}
+                            
+                            {% if customer.risk_notes %}
+                                <div class="small text-muted mt-1">{{ customer.risk_notes|linebreaks }}</div>
+                            {% endif %}
+                            
+                            {% if customer.risk_last_updated %}
+                                <div class="small text-muted">Last assessed: {{ customer.risk_last_updated|date:"M d, Y" }}</div>
+                            {% endif %}
+                            
+                            {% with recommendations=customer.get_payment_recommendations %}
+                                {% if recommendations.require_advance %}
+                                    <div class="text-danger mt-2"><i class="fas fa-exclamation-triangle me-1"></i> Advance payment required</div>
+                                {% endif %}
+                                
+                                {% if recommendations.manual_followup %}
+                                    <div class="mt-1"><i class="fas fa-bell me-1"></i> Manual follow-up recommended</div>
+                                {% endif %}
+                                
+                                <div class="small mt-1">{{ recommendations.credit_limit }}</div>
+                            {% endwith %}
+                            
+                            <div class="mt-2">
+                                <a href="{% url 'customers:risk_assessment' %}?risk_level={{ customer.risk_score }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-shield-alt me-1"></i> View Risk Assessment
+                                </a>
+                            </div>
+                        </dd>
+                    </dl>
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'customers:customer_update' customer.pk %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-1"></i> Edit
+                        </a>
+                        <a href="{% url 'customers:customer_delete' customer.pk %}" class="btn btn-danger">
+                            <i class="fas fa-trash-alt me-1"></i> Delete
+                        </a>
+                        <a href="{% url 'customers:customer_ledger' customer.pk %}" class="btn btn-info">
+                            <i class="fas fa-book me-1"></i> View Ledger
+                        </a>
+                        <a href="{% url 'customers:customer_ledger_excel' customer.pk %}" class="btn btn-success">
+                            <i class="fas fa-file-excel me-1"></i> Export Ledger
+                        </a>
+                        <a href="{% url 'customers:customer_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to List
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-6">
+            <!-- Recent Deliveries Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-truck me-1"></i>
+                    Recent Deliveries
+                </div>
+                <div class="card-body">
+                    {% if recent_deliveries %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Date</th>
+                                        <th>Amount</th>
+                                        <th>Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for delivery in recent_deliveries %}
+                                    <tr>
+                                        <td>{{ delivery.invoice_number }}</td>
+                                        <td>{{ delivery.date|date:"M d, Y" }}</td>
+                                        <td>₹{{ delivery.total_amount }}</td>
+                                        <td>
+                                            {% with calculated_balance=delivery.total_amount|sub:delivery.received_amount %}
+                                            {% if calculated_balance > 0 %}
+                                                <span class="text-danger">₹{{ calculated_balance }}</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Paid</span>
+                                            {% endif %}
+                                            {% endwith %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <a href="{% url 'customers:delivery_list' %}?customer={{ customer.id }}" class="btn btn-outline-primary">
+                                <i class="fas fa-list me-1"></i> View All Deliveries
+                            </a>
+                            <a href="{% url 'customers:delivery_create' %}?customer={{ customer.id }}" class="btn btn-outline-success">
+                                <i class="fas fa-plus me-1"></i> New Delivery
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No recent deliveries found for this customer.</p>
+                        <a href="{% url 'customers:delivery_create' %}?customer={{ customer.id }}" class="btn btn-outline-success">
+                            <i class="fas fa-plus me-1"></i> Create New Delivery
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Recent Concrete Deliveries Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-truck-loading me-1"></i>
+                    Recent Concrete Deliveries
+                </div>
+                <div class="card-body">
+                    {% with concrete_deliveries=customer.concrete_deliveries.all|slice:":5" %}
+                    {% if concrete_deliveries %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Grade</th>
+                                        <th>Quantity</th>
+                                        <th>Site</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for delivery in concrete_deliveries %}
+                                    <tr>
+                                        <td>{{ delivery.delivery_date|date:"M d, Y" }}</td>
+                                        <td>{{ delivery.grade }}</td>
+                                        <td>{{ delivery.quantity }} m³</td>
+                                        <td>{{ delivery.site_location|truncatechars:20 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <a href="{% url 'customers:concrete_delivery_list' %}?customer={{ customer.id }}" class="btn btn-outline-primary">
+                                <i class="fas fa-list me-1"></i> View All Concrete Deliveries
+                            </a>
+                            <a href="{% url 'customers:delivery_create' %}?customer={{ customer.id }}&delivery_type=concrete" class="btn btn-outline-success">
+                                <i class="fas fa-plus me-1"></i> New Concrete Delivery
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No concrete deliveries found for this customer.</p>
+                        <a href="{% url 'customers:delivery_create' %}?customer={{ customer.id }}&delivery_type=concrete" class="btn btn-outline-success">
+                            <i class="fas fa-plus me-1"></i> Create New Concrete Delivery
+                        </a>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

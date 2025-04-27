@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2 class="mb-3">
+                <i class="bi bi-gear text-primary me-2"></i>System Settings
+            </h2>
+            <p class="text-muted">Configure system settings and preferences</p>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-lg-4">
+            <div class="list-group">
+                <a href="#general" class="list-group-item list-group-item-action active" data-bs-toggle="list">
+                    <i class="bi bi-sliders me-2"></i>General Settings
+                </a>
+                <a href="#company" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    <i class="bi bi-building me-2"></i>Company Information
+                </a>
+                <a href="#notifications" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    <i class="bi bi-bell me-2"></i>Notifications
+                </a>
+                <a href="#backup" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                    <i class="bi bi-cloud-upload me-2"></i>Backup & Restore
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-lg-8">
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="general">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">General Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label for="dateFormat" class="form-label">Date Format</label>
+                                    <select class="form-select" id="dateFormat">
+                                        <option value="DD/MM/YYYY" selected>DD/MM/YYYY</option>
+                                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="currencySymbol" class="form-label">Currency Symbol</label>
+                                    <input type="text" class="form-control" id="currencySymbol" value="₹">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="timezone" class="form-label">Timezone</label>
+                                    <select class="form-select" id="timezone">
+                                        <option value="Asia/Kolkata" selected>Asia/Kolkata (GMT +5:30)</option>
+                                        <option value="UTC">UTC (GMT +0:00)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="enableAuditLog" checked>
+                                    <label class="form-check-label" for="enableAuditLog">Enable Audit Log</label>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">Save Settings</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="company">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Company Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label for="companyName" class="form-label">Company Name</label>
+                                    <input type="text" class="form-control" id="companyName" value="Amaravathi RMC">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="companyAddress" class="form-label">Address</label>
+                                    <textarea class="form-control" id="companyAddress" rows="3"></textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="companyEmail" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="companyEmail">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="companyPhone" class="form-label">Phone</label>
+                                    <input type="text" class="form-control" id="companyPhone">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="companyLogo" class="form-label">Company Logo</label>
+                                    <input type="file" class="form-control" id="companyLogo">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">Save Information</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="notifications">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Notification Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Configure how you receive notifications from the system.</p>
+                            <form>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="emailNotifications" checked>
+                                    <label class="form-check-label" for="emailNotifications">Email Notifications</label>
+                                </div>
+                                
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="smsNotifications">
+                                    <label class="form-check-label" for="smsNotifications">SMS Notifications</label>
+                                </div>
+                                
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="lowInventoryAlerts" checked>
+                                    <label class="form-check-label" for="lowInventoryAlerts">Low Inventory Alerts</label>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">Save Preferences</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="tab-pane fade" id="backup">
+                    <div class="card shadow">
+                        <div class="card-header">
+                            <h5 class="mb-0">Backup & Restore</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted">Manage your system backups and restore points.</p>
+                            
+                            <div class="mb-4">
+                                <h6>Create Backup</h6>
+                                <p>Generate a backup of your current data.</p>
+                                <button class="btn btn-primary">
+                                    <i class="bi bi-download me-2"></i>Create Backup
+                                </button>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <h6>Restore from Backup</h6>
+                                <p>Restore your data from a previous backup file.</p>
+                                <div class="input-group">
+                                    <input type="file" class="form-control" id="backupFile">
+                                    <button class="btn btn-outline-secondary" type="button">
+                                        <i class="bi bi-upload me-2"></i>Restore
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                Restoring from a backup will overwrite your current data. Make sure to create a backup before proceeding.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

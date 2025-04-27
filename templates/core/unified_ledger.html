@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Unified Ledger{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Unified Ledger</h1>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="entity_name" class="form-label">Entity Name</label>
+                    <input type="text" class="form-control" id="entity_name" name="entity_name" placeholder="Customer/Supplier/Employee name" value="{{ entity_name }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="search" name="search" placeholder="Invoice, Reference, etc." value="{{ search }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="transaction_type" class="form-label">Transaction Type</label>
+                    <select class="form-select" id="transaction_type" name="transaction_type">
+                        <option value="" {% if not transaction_type %}selected{% endif %}>All Types</option>
+                        <option value="customer_payment" {% if transaction_type == 'customer_payment' %}selected{% endif %}>Customer Payment</option>
+                        <option value="supplier_payment" {% if transaction_type == 'supplier_payment' %}selected{% endif %}>Supplier Payment</option>
+                        <option value="expense" {% if transaction_type == 'expense' %}selected{% endif %}>Expense</option>
+                        <option value="salary" {% if transaction_type == 'salary' %}selected{% endif %}>Salary</option>
+                        <option value="commitment" {% if transaction_type == 'commitment' %}selected{% endif %}>Operational Commitment</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="payment_mode" class="form-label">Payment Mode</label>
+                    <select class="form-select" id="payment_mode" name="payment_mode">
+                        <option value="" {% if not payment_mode %}selected{% endif %}>All Modes</option>
+                        <option value="CASH" {% if payment_mode == 'CASH' %}selected{% endif %}>Cash</option>
+                        <option value="CHEQUE" {% if payment_mode == 'CHEQUE' %}selected{% endif %}>Cheque</option>
+                        <option value="BANK" {% if payment_mode == 'BANK' %}selected{% endif %}>Bank Transfer</option>
+                        <option value="UPI" {% if payment_mode == 'UPI' %}selected{% endif %}>UPI</option>
+                        <option value="CREDIT" {% if payment_mode == 'CREDIT' %}selected{% endif %}>Credit</option>
+                        <option value="AUTO_DEBIT" {% if payment_mode == 'AUTO_DEBIT' %}selected{% endif %}>Auto Debit</option>
+                    </select>
+                </div>
+                <div class="col-12 mt-3">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{% url 'core:unified_ledger' %}" class="btn btn-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Inflow</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ total_inflow|intcomma }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-arrow-down fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Outflow</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ total_outflow|intcomma }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-arrow-up fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Net Cash Flow</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹{{ net_cash_flow|intcomma }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-wallet fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Transaction Count</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ transaction_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Transactions</h6>
+            <div>
+                {% if active_filters %}
+                <span class="badge bg-secondary">{{ active_filters|join:" | " }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Reference/Invoice</th>
+                            <th>Type</th>
+                            <th>Payment Mode</th>
+                            <th>Inflow</th>
+                            <th>Outflow</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.date|date:"d-m-Y" }}</td>
+                            <td>{{ transaction.description }}</td>
+                            <td>{{ transaction.reference }}</td>
+                            <td>
+                                {% if transaction.type == 'customer_payment' %}
+                                <span class="badge bg-success">Customer Payment</span>
+                                {% elif transaction.type == 'supplier_payment' %}
+                                <span class="badge bg-danger">Supplier Payment</span>
+                                {% elif transaction.type == 'expense' %}
+                                <span class="badge bg-warning">Expense</span>
+                                {% elif transaction.type == 'salary' %}
+                                <span class="badge bg-info">Salary</span>
+                                {% elif transaction.type == 'commitment' %}
+                                <span class="badge bg-primary">Operational Commitment</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ transaction.payment_mode }}</td>
+                            <td class="text-success">
+                                {% if transaction.inflow %}
+                                ₹{{ transaction.inflow|intcomma }}
+                                {% endif %}
+                            </td>
+                            <td class="text-danger">
+                                {% if transaction.outflow %}
+                                ₹{{ transaction.outflow|intcomma }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if transaction.type == 'customer_payment' %}
+                                <a href="{% url 'customers:payment_detail' transaction.id %}" class="btn btn-sm btn-primary">View</a>
+                                {% elif transaction.type == 'supplier_payment' %}
+                                <a href="{% url 'suppliers:payment_detail' transaction.id %}" class="btn btn-sm btn-primary">View</a>
+                                {% elif transaction.type == 'expense' %}
+                                <a href="{% url 'expenses:expense_detail' transaction.id %}" class="btn btn-sm btn-primary">View</a>
+                                {% elif transaction.type == 'salary' %}
+                                <a href="{% url 'employees:salary_detail' transaction.id %}" class="btn btn-sm btn-primary">View</a>
+                                {% elif transaction.type == 'commitment' %}
+                                <a href="{% url 'commitments:payment_detail' transaction.id %}" class="btn btn-sm btn-primary">View</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">No transactions found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if has_previous or has_next %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mt-4">
+                    {% if has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ previous_page }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_range %}
+                        {% if current_page == num %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ next_page }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delivery Reports | Amaravathi RMC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Delivery Reports</h1>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold">Filter Report</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                           value="{{ start_date|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date"
+                           value="{{ end_date|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="customer" class="form-label">Customer</label>
+                    <select class="form-control" id="customer" name="customer">
+                        <option value="">All Customers</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}" {% if selected_customer == customer.id|stringformat:"s" %}selected{% endif %}>
+                            {{ customer.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-2"></i>Generate Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold">Delivery Report</h6>
+            <div>
+                <button onclick="window.print();" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-printer me-2"></i>Print
+                </button>
+                <a href="#" class="btn btn-sm btn-outline-success ms-2">
+                    <i class="bi bi-file-excel me-2"></i>Export Excel
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Invoice #</th>
+                            <th>Customer</th>
+                            <th>Type</th>
+                            <th>Total Amount</th>
+                            <th>Received Amount</th>
+                            <th>Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if deliveries %}
+                            {% for delivery in deliveries %}
+                            <tr>
+                                <td>{{ delivery.date|date:"d M Y" }}</td>
+                                <td>{{ delivery.invoice_number }}</td>
+                                <td>{{ delivery.customer }}</td>
+                                <td>{{ delivery.type }}</td>
+                                <td class="text-end">₹{{ delivery.total_amount|floatformat:2 }}</td>
+                                <td class="text-end">₹{{ delivery.received_amount|floatformat:2 }}</td>
+                                <td class="text-end {% if delivery.balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                                    ₹{{ delivery.balance|floatformat:2 }}
+                                </td>
+                                <td class="text-center">
+                                    <a href="{{ delivery.detail_url }}" class="btn btn-sm btn-info">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    {% if filter_active %}
+                                        No deliveries found matching your filters.
+                                    {% else %}
+                                        Apply filters to generate report
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold">
+                            <td colspan="4" class="text-end">Total:</td>
+                            <td class="text-end">₹{{ total_amount|floatformat:2 }}</td>
+                            <td class="text-end">₹{{ total_received|floatformat:2 }}</td>
+                            <td class="text-end">₹{{ total_balance|floatformat:2 }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
